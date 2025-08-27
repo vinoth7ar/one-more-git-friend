@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
-import { VisualizationPage } from "@/components/SingleView/SingleViewAll";
+import { SimpleWorkflowPage } from "@/pages/SimpleWorkflowPage";
 
 const queryClient = new QueryClient();
 
@@ -15,8 +15,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<VisualizationPage />} />
-          <Route path="/visualization/:type/:id" element={<VisualizationPage />} />
+          <Route path="/" element={<SimpleWorkflowPage />} />
+          <Route path="/workflow/:id" element={<SimpleWorkflowPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
