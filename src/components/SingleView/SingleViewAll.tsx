@@ -48,6 +48,8 @@ import {
   Settings,
   ArrowForward
 } from '@mui/icons-material';
+import { updateConnectionsForWorkflow as importedUpdateConnectionsForWorkflow } from '../workflow/connection-utils';
+import { simpleWorkflows } from '../workflow/mock-data';
 // ============================================================================
 // WORKFLOW BUILDER DEPENDENCIES SECTION (All Inlined)
 // ============================================================================
@@ -446,20 +448,7 @@ export const generateIntelligentConnections = (workflowData: WorkflowData): Edge
   return edges;
 };
 
-export const updateConnectionsForWorkflow = (
-  workflowData: WorkflowData,
-  existingEdges: Edge[] = []
-): Edge[] => {
-  // Generate new intelligent connections
-  const newConnections = generateIntelligentConnections(workflowData);
-  
-  // Keep any custom user-added edges that don't conflict
-  const customEdges = existingEdges.filter(edge => 
-    !newConnections.some(newEdge => newEdge.id === edge.id)
-  );
-
-  return [...newConnections, ...customEdges];
-};
+// Removed duplicate function - using the imported one from connection-utils.ts
 
 // ===========================================
 // WORKFLOW SIDEBAR COMPONENT (from WorkflowSidebar.tsx)  
@@ -480,6 +469,8 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
 
   const workflows = [
     { id: 'ebm-version', name: 'EBM Version' },
+    { id: 'customer-onboarding', name: 'Customer Onboarding' },
+    { id: 'payment-processing', name: 'Payment Processing' },
   ];
 
   return (
@@ -584,7 +575,14 @@ const WorkflowBuilder = ({
     () => setEntitiesExpanded(!entitiesExpanded),
     layoutConfig
   ) : [];
-  const initialEdges = currentWorkflowData ? updateConnectionsForWorkflow(currentWorkflowData) : [];
+  
+  // Get the corresponding simple workflow for edge information
+  const currentSimpleWorkflow = simpleWorkflows[selectedWorkflowId];
+  const initialEdges = currentWorkflowData ? importedUpdateConnectionsForWorkflow(
+    currentWorkflowData, 
+    [],
+    currentSimpleWorkflow
+  ) : [];
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -629,9 +627,14 @@ const WorkflowBuilder = ({
   useEffect(() => {
     if (!currentWorkflowData) return;
     
-    const updatedEdges = updateConnectionsForWorkflow(currentWorkflowData);
+    const currentSimpleWorkflow = simpleWorkflows[selectedWorkflowId];
+    const updatedEdges = importedUpdateConnectionsForWorkflow(
+      currentWorkflowData, 
+      [],
+      currentSimpleWorkflow
+    );
     setEdges(updatedEdges);
-  }, [currentWorkflowData, setEdges]);
+  }, [currentWorkflowData, selectedWorkflowId, setEdges]);
 
   return (
     <div className="flex h-screen w-full bg-workflow-bg">

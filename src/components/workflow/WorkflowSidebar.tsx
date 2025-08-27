@@ -15,6 +15,8 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
 
   const workflows = [
     { id: 'ebm-version', name: 'EBM Version' },
+    { id: 'customer-onboarding', name: 'Customer Onboarding' },
+    { id: 'payment-processing', name: 'Payment Processing' },
   ];
 
   return (
