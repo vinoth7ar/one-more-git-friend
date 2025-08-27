@@ -14,10 +14,7 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
   ];
 
   const workflows = [
-    { id: 'hypo-loan-position', name: 'Hypo Loan Position' },
-    { id: 'hypo-loan', name: 'Hypo Loan' },
-    { id: 'workflow-1', name: 'Customer Onboarding' },
-    { id: 'workflow-2', name: 'Payment Processing' },
+    { id: 'ebm-version', name: 'EBM Version' },
   ];
 
   return (
