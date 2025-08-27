@@ -86,25 +86,25 @@ export const createDynamicNodes = (
     draggable: true,
   });
 
-  // Stage nodes - positioned dynamically
+  // Event nodes (rectangular) - positioned dynamically
   workflowData.stages.forEach((stage, index) => {
     const position = layout.getStagePosition(index);
     
     nodes.push({
       id: stage.id,
-      type: 'stage',
+      type: 'workflow-node',
       position,
       data: {
         title: stage.title,
         description: stage.description,
-        type: 'stage',
+        type: 'process',
         color: stage.color,
         onClick: () => console.log(`${stage.title} event clicked`),
       } as WorkflowNodeData,
       parentId: workflowData.workflow.id,
       extent: 'parent',
       style: { width: config.stageWidth, height: config.stageHeight },
-      draggable: true,
+      draggable: false,
     });
   });
 
@@ -123,7 +123,7 @@ export const createDynamicNodes = (
       } as CircularNodeData,
       parentId: workflowData.workflow.id,
       extent: 'parent',
-      draggable: true,
+      draggable: false,
     });
   });
 

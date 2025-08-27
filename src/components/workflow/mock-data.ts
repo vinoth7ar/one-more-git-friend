@@ -242,7 +242,11 @@ const convertToWorkflowData = (simpleWorkflow: SimpleWorkflow): WorkflowData => 
         label: node.label,
         color: 'default' as const
       })),
-    entities: [] // Empty for simple workflows
+    entities: [
+      { id: 'entity-1', title: 'Customer Data', color: 'yellow' },
+      { id: 'entity-2', title: 'Payment Info', color: 'yellow' },
+      { id: 'entity-3', title: 'Order Details' }
+    ]
   };
 };
 

@@ -28,12 +28,12 @@ interface WorkflowBuilderProps {
 }
 
 const nodeTypes = {
-  workflow: WorkflowNode,
-  circular: CircularNode,
-  stage: WorkflowNode,
-  data: WorkflowNode,
+  'workflow-node': WorkflowNode,
+  'workflow': WorkflowNode,
   'pmf-tag': WorkflowNode,
   'entities-group': WorkflowNode,
+  'process': WorkflowNode,
+  circular: CircularNode,
 };
 
 const WorkflowBuilder = ({ 
