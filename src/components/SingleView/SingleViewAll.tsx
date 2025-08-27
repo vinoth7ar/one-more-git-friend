@@ -1527,5 +1527,5 @@ export function LandingPage() {
 // MAIN EXPORTS - Move to: src/components/SingleView/index.tsx
 // ============================================================================
 
-// Functions and components are already exported inline above
-// No need for duplicate exports here
+// Default export for easier importing
+export default VisualizationPage;
