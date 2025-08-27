@@ -31,8 +31,8 @@ const ebmVersionWorkflow: SimpleWorkflow = {
   nodes: [
     {
       id: 'n1',
-      type: 'status',
-      label: 'Start'
+      type: 'event',
+      label: 'Create'
     },
     {
       id: 'n2',
@@ -42,7 +42,7 @@ const ebmVersionWorkflow: SimpleWorkflow = {
     {
       id: 'n3',
       type: 'event',
-      label: 'Link'
+      label: 'Deploy'
     },
     {
       id: 'n4',
@@ -54,26 +54,20 @@ const ebmVersionWorkflow: SimpleWorkflow = {
     {
       id: 'e1',
       source: 'n1',
-      target: 'n3',
-      label: 'Create EBM version'
+      target: 'n2',
+      label: 'Version created'
     },
     {
       id: 'e2',
-      source: 'n3',
-      target: 'n2',
-      label: 'Created'
+      source: 'n2',
+      target: 'n3',
+      label: 'Ready to deploy'
     },
     {
       id: 'e3',
-      source: 'n2',
-      target: 'n3',
-      label: 'Modify EBM version'
-    },
-    {
-      id: 'e4',
       source: 'n3',
       target: 'n4',
-      label: 'Deploy'
+      label: 'Deployment complete'
     }
   ]
 };
@@ -82,32 +76,27 @@ const ebmVersionWorkflow: SimpleWorkflow = {
 const customerOnboardingWorkflow: SimpleWorkflow = {
   id: 'customer-onboarding',
   name: 'Customer Onboarding',
-  description: 'Complete customer onboarding process workflow',
+  description: 'New customer registration workflow',
   nodes: [
     {
       id: 'co1',
-      type: 'status',
-      label: 'New Customer'
+      type: 'event',
+      label: 'Register'
     },
     {
       id: 'co2',
-      type: 'event',
-      label: 'Verify Identity'
+      type: 'status',
+      label: 'Registered'
     },
     {
       id: 'co3',
-      type: 'status',
-      label: 'Verified'
+      type: 'event',
+      label: 'Verify'
     },
     {
       id: 'co4',
-      type: 'event',
-      label: 'Setup Account'
-    },
-    {
-      id: 'co5',
       type: 'status',
-      label: 'Active'
+      label: 'Verified'
     }
   ],
   edges: [
@@ -115,25 +104,19 @@ const customerOnboardingWorkflow: SimpleWorkflow = {
       id: 'co_e1',
       source: 'co1',
       target: 'co2',
-      label: 'Start verification'
+      label: 'Customer registered'
     },
     {
       id: 'co_e2',
       source: 'co2',
       target: 'co3',
-      label: 'Identity confirmed'
+      label: 'Identity verification step'
     },
     {
       id: 'co_e3',
       source: 'co3',
       target: 'co4',
-      label: 'Begin setup'
-    },
-    {
-      id: 'co_e4',
-      source: 'co4',
-      target: 'co5',
-      label: 'Account ready'
+      label: 'Identity confirmed'
     }
   ]
 };
@@ -146,36 +129,21 @@ const paymentProcessingWorkflow: SimpleWorkflow = {
   nodes: [
     {
       id: 'pp1',
-      type: 'status',
-      label: 'Payment Initiated'
+      type: 'event',
+      label: 'Process'
     },
     {
       id: 'pp2',
-      type: 'event',
-      label: 'Validate Payment'
-    },
-    {
-      id: 'pp3',
-      type: 'status',
-      label: 'Validated'
-    },
-    {
-      id: 'pp4',
-      type: 'event',
-      label: 'Process Payment'
-    },
-    {
-      id: 'pp5',
       type: 'status',
       label: 'Processing'
     },
     {
-      id: 'pp6',
+      id: 'pp3',
       type: 'event',
-      label: 'Complete Transaction'
+      label: 'Complete'
     },
     {
-      id: 'pp7',
+      id: 'pp4',
       type: 'status',
       label: 'Completed'
     }
@@ -185,36 +153,18 @@ const paymentProcessingWorkflow: SimpleWorkflow = {
       id: 'pp_e1',
       source: 'pp1',
       target: 'pp2',
-      label: 'Begin validation'
+      label: 'Payment initiated'
     },
     {
       id: 'pp_e2',
       source: 'pp2',
       target: 'pp3',
-      label: 'Validation success'
+      label: 'Ready to complete'
     },
     {
       id: 'pp_e3',
       source: 'pp3',
       target: 'pp4',
-      label: 'Start processing'
-    },
-    {
-      id: 'pp_e4',
-      source: 'pp4',
-      target: 'pp5',
-      label: 'Processing started'
-    },
-    {
-      id: 'pp_e5',
-      source: 'pp5',
-      target: 'pp6',
-      label: 'Ready to complete'
-    },
-    {
-      id: 'pp_e6',
-      source: 'pp6',
-      target: 'pp7',
       label: 'Transaction done'
     }
   ]
