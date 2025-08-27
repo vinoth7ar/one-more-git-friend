@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 210 17% 98%;
+    --foreground: 215 25% 27%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+
+    --primary: 213 94% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 11% 94%;
+    --secondary-foreground: 215 25% 27%;
+
+    --muted: 210 11% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 11% 94%;
+    --accent-foreground: 215 25% 27%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 14% 89%;
+    --input: 210 14% 89%;
+    --ring: 213 94% 68%;
+
+    /* Enterprise workflow colors - matching Figma design */
+    --workflow-bg: 220 20% 92%;
+    --workflow-canvas: 220 15% 96%;
+    --workflow-border: 213 94% 68%;
+    --workflow-node-bg: 0 0% 100%;
+    --workflow-node-border: 213 94% 68%;
+    --workflow-main-bg: 220 15% 96%;
+    --workflow-main-border: 213 94% 68%;
+    --workflow-stage-bg: 220 15% 96%;
+    --workflow-stage-border: 0 0% 20%;
+    --workflow-data-bg: 45 100% 85%;
+    --workflow-data-border: 45 93% 47%;
+    --workflow-process-bg: 213 94% 68%;
+    --workflow-process-text: 0 0% 100%;
+    --workflow-circular: 0 0% 100%;
+    --workflow-circular-border: 0 0% 20%;
+    --workflow-pmf-bg: 0 0% 20%;
+    --workflow-pmf-text: 0 0% 100%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 215 28% 17%;
+    --foreground: 210 40% 98%;
+
+    --card: 215 28% 17%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 215 28% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 213 94% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 25% 25%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 25% 25%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 215 25% 25%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 25% 25%;
+    --input: 215 25% 25%;
+    --ring: 213 94% 68%;
+
+    /* Dark mode enterprise workflow colors */
+    --workflow-bg: 215 28% 17%;
+    --workflow-canvas: 215 28% 22%;
+    --workflow-border: 213 94% 68%;
+    --workflow-node-bg: 215 28% 22%;
+    --workflow-node-border: 213 94% 68%;
+    --workflow-main-bg: 215 28% 22%;
+    --workflow-main-border: 213 94% 68%;
+    --workflow-stage-bg: 215 28% 22%;
+    --workflow-stage-border: 210 40% 98%;
+    --workflow-data-bg: 45 50% 25%;
+    --workflow-data-border: 45 93% 47%;
+    --workflow-process-bg: 213 94% 68%;
+    --workflow-process-text: 0 0% 100%;
+    --workflow-circular: 215 28% 22%;
+    --workflow-circular-border: 210 40% 98%;
+    --workflow-pmf-bg: 210 40% 98%;
+    --workflow-pmf-text: 215 28% 17%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
