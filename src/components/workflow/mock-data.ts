@@ -1,3 +1,6 @@
+// Import existing workflow types
+import { WorkflowData } from './types';
+
 // New workflow data structure based on uploaded JSON
 export interface SimpleWorkflowNode {
   id: string;
@@ -20,181 +23,112 @@ export interface SimpleWorkflow {
   edges: SimpleWorkflowEdge[];
 }
 
-export const mockSimpleWorkflows: Record<string, SimpleWorkflow> = {
-  'ebm-version': {
-    id: 'f564cd67-2502-46a1-8494-4f61df616811',
-    name: 'EBM Version',
-    description: 'Workflow definition for grouping a set of application versions into an EBM version',
-    nodes: [
-      {
-        id: 'n1',
-        type: 'status',
-        label: 'Start'
-      },
-      {
-        id: 'n2',
-        type: 'status',
-        label: 'Created'
-      },
-      {
-        id: 'n3',
-        type: 'event',
-        label: 'Link'
-      },
-      {
-        id: 'n4',
-        type: 'status',
-        label: 'Deployed'
-      }
+// EBM Version workflow from user's JSON
+const ebmVersionWorkflow: SimpleWorkflow = {
+  id: 'f564cd67-2502-46a1-8494-4f61df616811',
+  name: 'EBM Version',
+  description: 'Workflow definition for grouping a set of application versions into an EBM version',
+  nodes: [
+    {
+      id: 'n1',
+      type: 'status',
+      label: 'Start'
+    },
+    {
+      id: 'n2',
+      type: 'status',
+      label: 'Created'
+    },
+    {
+      id: 'n3',
+      type: 'event',
+      label: 'Link'
+    },
+    {
+      id: 'n4',
+      type: 'status',
+      label: 'Deployed'
+    }
+  ],
+  edges: [
+    {
+      id: 'e1',
+      source: 'n1',
+      target: 'n3',
+      label: 'Create EBM version'
+    },
+    {
+      id: 'e2',
+      source: 'n3',
+      target: 'n2',
+      label: 'Created'
+    },
+    {
+      id: 'e3',
+      source: 'n2',
+      target: 'n3',
+      label: 'Modify EBM version'
+    },
+    {
+      id: 'e4',
+      source: 'n3',
+      target: 'n4',
+      label: 'Deploy'
+    }
+  ]
+};
+
+// Convert the new JSON structure to work with existing WorkflowBuilder
+const convertToWorkflowData = (simpleWorkflow: SimpleWorkflow): WorkflowData => {
+  return {
+    workflow: {
+      id: simpleWorkflow.id,
+      title: simpleWorkflow.name,
+      description: simpleWorkflow.description,
+    },
+    stages: simpleWorkflow.nodes
+      .filter(node => node.type === 'event')
+      .map(node => ({
+        id: node.id,
+        title: node.label,
+        description: `${node.type} node`
+      })),
+    statusNodes: simpleWorkflow.nodes
+      .filter(node => node.type === 'status')
+      .map(node => ({
+        id: node.id,
+        label: node.label,
+        color: 'default' as const
+      })),
+    entities: [] // Empty for simple workflows
+  };
+};
+
+// Update existing workflows to include new EBM data
+export const mockWorkflows: Record<string, WorkflowData> = {
+  'pmf-core': {
+    workflow: {
+      id: 'pmf-core',
+      title: 'PMF Core Workflow',
+      description: 'The main PMF workflow with complete stages'
+    },
+    stages: [
+      { id: 'discovery', title: 'Discovery', description: 'Problem discovery phase' },
+      { id: 'validation', title: 'Validation', description: 'Solution validation phase' },
+      { id: 'optimization', title: 'Optimization', description: 'Product optimization phase' }
     ],
-    edges: [
-      {
-        id: 'e1',
-        source: 'n1',
-        target: 'n3',
-        label: 'Create EBM version'
-      },
-      {
-        id: 'e2',
-        source: 'n3',
-        target: 'n2',
-        label: 'Created'
-      },
-      {
-        id: 'e3',
-        source: 'n2',
-        target: 'n3',
-        label: 'Modify EBM version'
-      },
-      {
-        id: 'e4',
-        source: 'n3',
-        target: 'n4',
-        label: 'Deploy'
-      }
+    statusNodes: [
+      { id: 'status-1', label: 'In Progress', color: 'default' },
+      { id: 'status-2', label: 'Validated', color: 'default' },
+      { id: 'status-3', label: 'Optimized', color: 'default' }
+    ],
+    entities: [
+      { id: 'problem', title: 'Problem Statement', color: 'yellow' },
+      { id: 'solution', title: 'Solution Design', color: 'default' },
+      { id: 'target-customer', title: 'Target Customer', color: 'default' }
     ]
   },
-
-  'customer-journey': {
-    id: 'customer-journey-001',
-    name: 'Customer Journey',
-    description: 'Customer onboarding and verification workflow',
-    nodes: [
-      {
-        id: 'n1',
-        type: 'status',
-        label: 'New Customer'
-      },
-      {
-        id: 'n2',
-        type: 'event',
-        label: 'Registration'
-      },
-      {
-        id: 'n3',
-        type: 'status',
-        label: 'Registered'
-      },
-      {
-        id: 'n4',
-        type: 'event',
-        label: 'Verification'
-      },
-      {
-        id: 'n5',
-        type: 'status',
-        label: 'Verified'
-      }
-    ],
-    edges: [
-      {
-        id: 'e1',
-        source: 'n1',
-        target: 'n2',
-        label: 'Start Registration'
-      },
-      {
-        id: 'e2',
-        source: 'n2',
-        target: 'n3',
-        label: 'Complete Registration'
-      },
-      {
-        id: 'e3',
-        source: 'n3',
-        target: 'n4',
-        label: 'Begin Verification'
-      },
-      {
-        id: 'e4',
-        source: 'n4',
-        target: 'n5',
-        label: 'Verification Complete'
-      }
-    ]
-  },
-
-  'payment-flow': {
-    id: 'payment-flow-001',
-    name: 'Payment Processing',
-    description: 'End-to-end payment processing workflow',
-    nodes: [
-      {
-        id: 'n1',
-        type: 'status',
-        label: 'Payment Initiated'
-      },
-      {
-        id: 'n2',
-        type: 'event',
-        label: 'Validate'
-      },
-      {
-        id: 'n3',
-        type: 'status',
-        label: 'Validated'
-      },
-      {
-        id: 'n4',
-        type: 'event',
-        label: 'Process'
-      },
-      {
-        id: 'n5',
-        type: 'status',
-        label: 'Completed'
-      }
-    ],
-    edges: [
-      {
-        id: 'e1',
-        source: 'n1',
-        target: 'n2',
-        label: 'Validate Payment'
-      },
-      {
-        id: 'e2',
-        source: 'n2',
-        target: 'n3',
-        label: 'Validation Success'
-      },
-      {
-        id: 'e3',
-        source: 'n3',
-        target: 'n4',
-        label: 'Process Payment'
-      },
-      {
-        id: 'e4',
-        source: 'n4',
-        target: 'n5',
-        label: 'Payment Complete'
-      }
-    ]
-  }
+  'ebm-version': convertToWorkflowData(ebmVersionWorkflow)
 };
 
 export const defaultWorkflow = 'ebm-version';
-
-// Legacy support - keeping old interface for existing components
-export const mockWorkflows = {};  // Empty object for backward compatibility

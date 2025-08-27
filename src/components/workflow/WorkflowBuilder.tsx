@@ -112,7 +112,7 @@ const WorkflowBuilder = ({
           fitView
           className="bg-workflow-canvas"
           defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
-          nodesDraggable={true}
+          nodesDraggable={false}
           nodesConnectable={true}
           elementsSelectable={true}
         >
