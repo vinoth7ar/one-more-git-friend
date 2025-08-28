@@ -27,7 +27,7 @@ export const calculateDynamicLayout = (
 
   // Calculate positions for each row
   const stageY = 70;
-  const circleY = stageY + stageHeight + verticalSpacing;
+  const circleY = stageY + stageHeight + 20; // Closer to event nodes
   const entitiesY = circleY + circleSize + verticalSpacing;
 
   return {
