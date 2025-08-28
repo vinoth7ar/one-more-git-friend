@@ -14,7 +14,7 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-// Chart-related imports (moved from distributed locations)
+// Pure React chart components (no external libraries)
 import {
   ChartContainer,
   ChartTooltip,
@@ -24,22 +24,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 
-// Recharts components for data visualization
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Area,
-  AreaChart,
-} from "recharts";
+// Pure React chart implementations (replacing Recharts)
+// All chart rendering done with SVG and React only
 
 // Workflow components integration
 import WorkflowBuilder from '@/components/workflow/WorkflowBuilder';
@@ -103,6 +89,292 @@ const pieChartData = [
   { name: "Failed", value: 67, fill: "hsl(var(--destructive))" },
   { name: "Pending", value: 89, fill: "hsl(var(--muted))" },
 ];
+
+/**
+ * Pure React Chart Components
+ * 
+ * Custom chart implementations using only React, SVG, and CSS
+ * No external charting libraries (like Recharts) used
+ */
+
+// Simple Bar Chart Component
+const ReactBarChart: React.FC<{
+  data: any[];
+  width?: number;
+  height?: number;
+  dataKeys: string[];
+  colors: string[];
+}> = ({ data, width = 400, height = 300, dataKeys, colors }) => {
+  const margin = { top: 20, right: 30, bottom: 40, left: 40 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  
+  const maxValue = Math.max(...data.flatMap(item => dataKeys.map(key => item[key])));
+  const barWidth = chartWidth / data.length * 0.8;
+  const barSpacing = chartWidth / data.length * 0.2;
+  
+  return (
+    <div className="w-full">
+      <svg width={width} height={height} className="overflow-visible">
+        {/* Grid lines */}
+        <g>
+          {[0, 1, 2, 3, 4].map(i => {
+            const y = margin.top + (chartHeight / 4) * i;
+            return (
+              <line
+                key={i}
+                x1={margin.left}
+                y1={y}
+                x2={margin.left + chartWidth}
+                y2={y}
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
+                opacity="0.3"
+              />
+            );
+          })}
+        </g>
+        
+        {/* Bars */}
+        <g>
+          {data.map((item, index) => {
+            const x = margin.left + index * (chartWidth / data.length) + barSpacing / 2;
+            return dataKeys.map((key, keyIndex) => {
+              const barHeight = (item[key] / maxValue) * chartHeight;
+              const barX = x + (keyIndex * barWidth / dataKeys.length);
+              const barY = margin.top + chartHeight - barHeight;
+              
+              return (
+                <rect
+                  key={`${index}-${key}`}
+                  x={barX}
+                  y={barY}
+                  width={barWidth / dataKeys.length}
+                  height={barHeight}
+                  fill={colors[keyIndex]}
+                  className="hover:opacity-80 transition-opacity"
+                />
+              );
+            });
+          })}
+        </g>
+        
+        {/* X-axis labels */}
+        <g>
+          {data.map((item, index) => {
+            const x = margin.left + index * (chartWidth / data.length) + (chartWidth / data.length) / 2;
+            return (
+              <text
+                key={index}
+                x={x}
+                y={height - 10}
+                textAnchor="middle"
+                fontSize="12"
+                fill="hsl(var(--muted-foreground))"
+              >
+                {item.name}
+              </text>
+            );
+          })}
+        </g>
+        
+        {/* Y-axis labels */}
+        <g>
+          {[0, 1, 2, 3, 4].map(i => {
+            const y = margin.top + (chartHeight / 4) * i;
+            const value = Math.round(maxValue - (maxValue / 4) * i);
+            return (
+              <text
+                key={i}
+                x={margin.left - 10}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="12"
+                fill="hsl(var(--muted-foreground))"
+              >
+                {value}
+              </text>
+            );
+          })}
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+// Simple Area Chart Component
+const ReactAreaChart: React.FC<{
+  data: any[];
+  width?: number;
+  height?: number;
+  dataKey: string;
+  color: string;
+}> = ({ data, width = 400, height = 300, dataKey, color }) => {
+  const margin = { top: 20, right: 30, bottom: 40, left: 40 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+  
+  const maxValue = Math.max(...data.map(item => item[dataKey]));
+  const stepX = chartWidth / (data.length - 1);
+  
+  // Create path for area
+  const pathData = data.map((item, index) => {
+    const x = margin.left + index * stepX;
+    const y = margin.top + chartHeight - (item[dataKey] / maxValue) * chartHeight;
+    return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
+  
+  const areaPath = pathData + 
+    ` L ${margin.left + chartWidth} ${margin.top + chartHeight}` +
+    ` L ${margin.left} ${margin.top + chartHeight} Z`;
+  
+  return (
+    <div className="w-full">
+      <svg width={width} height={height} className="overflow-visible">
+        {/* Grid lines */}
+        <g>
+          {[0, 1, 2, 3, 4].map(i => {
+            const y = margin.top + (chartHeight / 4) * i;
+            return (
+              <line
+                key={i}
+                x1={margin.left}
+                y1={y}
+                x2={margin.left + chartWidth}
+                y2={y}
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
+                opacity="0.3"
+              />
+            );
+          })}
+        </g>
+        
+        {/* Area */}
+        <path
+          d={areaPath}
+          fill={color}
+          fillOpacity="0.3"
+        />
+        
+        {/* Line */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+        />
+        
+        {/* Data points */}
+        {data.map((item, index) => {
+          const x = margin.left + index * stepX;
+          const y = margin.top + chartHeight - (item[dataKey] / maxValue) * chartHeight;
+          return (
+            <circle
+              key={index}
+              cx={x}
+              cy={y}
+              r="3"
+              fill={color}
+              className="hover:r-4 transition-all"
+            />
+          );
+        })}
+        
+        {/* X-axis labels */}
+        <g>
+          {data.map((item, index) => {
+            const x = margin.left + index * stepX;
+            return (
+              <text
+                key={index}
+                x={x}
+                y={height - 10}
+                textAnchor="middle"
+                fontSize="12"
+                fill="hsl(var(--muted-foreground))"
+              >
+                {item.name}
+              </text>
+            );
+          })}
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+// Simple Pie Chart Component
+const ReactPieChart: React.FC<{
+  data: any[];
+  width?: number;
+  height?: number;
+}> = ({ data, width = 300, height = 300 }) => {
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) / 2 - 40;
+  
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  let currentAngle = 0;
+  
+  const slices = data.map(item => {
+    const sliceAngle = (item.value / total) * 360;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + sliceAngle;
+    
+    const x1 = centerX + radius * Math.cos((startAngle * Math.PI) / 180);
+    const y1 = centerY + radius * Math.sin((startAngle * Math.PI) / 180);
+    const x2 = centerX + radius * Math.cos((endAngle * Math.PI) / 180);
+    const y2 = centerY + radius * Math.sin((endAngle * Math.PI) / 180);
+    
+    const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+    
+    const pathData = [
+      `M ${centerX} ${centerY}`,
+      `L ${x1} ${y1}`,
+      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+      `Z`
+    ].join(' ');
+    
+    currentAngle += sliceAngle;
+    
+    return {
+      ...item,
+      path: pathData,
+      percentage: ((item.value / total) * 100).toFixed(1)
+    };
+  });
+  
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={width} height={height}>
+        {slices.map((slice, index) => (
+          <path
+            key={index}
+            d={slice.path}
+            fill={slice.fill}
+            className="hover:opacity-80 transition-opacity cursor-pointer"
+          />
+        ))}
+      </svg>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 mt-4 justify-center">
+        {data.map((item, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: item.fill }}
+            />
+            <span className="text-sm text-muted-foreground">
+              {item.name} ({slices[index].percentage}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 interface SingleViewProps {}
 
@@ -261,19 +533,13 @@ const SingleView: React.FC<SingleViewProps> = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <BarChart data={processedChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <ChartTooltip 
-                        cursor={false}
-                        content={<ChartTooltipContent indicator="dashed" />}
-                      />
-                      <Bar dataKey="events" fill="var(--color-events)" />
-                      <Bar dataKey="status" fill="var(--color-status)" />
-                    </BarChart>
-                  </ChartContainer>
+                  <ReactBarChart
+                    data={processedChartData}
+                    width={500}
+                    height={300}
+                    dataKeys={['events', 'status']}
+                    colors={['hsl(var(--primary))', 'hsl(var(--secondary))']}
+                  />
                 </CardContent>
               </Card>
 
@@ -285,19 +551,13 @@ const SingleView: React.FC<SingleViewProps> = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <BarChart data={processedChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <ChartTooltip 
-                        cursor={false}
-                        content={<ChartTooltipContent indicator="dashed" />}
-                      />
-                      <Bar dataKey="success" fill="var(--color-success)" />
-                      <Bar dataKey="failed" fill="var(--color-failed)" />
-                    </BarChart>
-                  </ChartContainer>
+                  <ReactBarChart
+                    data={processedChartData}
+                    width={500}
+                    height={300}
+                    dataKeys={['success', 'failed']}
+                    colors={['hsl(var(--success))', 'hsl(var(--destructive))']}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -313,30 +573,13 @@ const SingleView: React.FC<SingleViewProps> = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig}>
-                  <AreaChart data={processedChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <ChartTooltip 
-                      cursor={false}
-                      content={<ChartTooltipContent indicator="dot" />}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="processed" 
-                      stroke="var(--color-processed)" 
-                      fill="var(--color-processed)" 
-                      fillOpacity={0.6}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="events" 
-                      stroke="var(--color-events)" 
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ChartContainer>
+                <ReactAreaChart
+                  data={processedChartData}
+                  width={600}
+                  height={300}
+                  dataKey="processed"
+                  color="hsl(var(--primary))"
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -352,31 +595,11 @@ const SingleView: React.FC<SingleViewProps> = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <PieChart>
-                      <ChartTooltip 
-                        cursor={false}
-                        content={<ChartTooltipContent hideLabel />}
-                      />
-                      <Pie
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <ChartLegend 
-                        content={<ChartLegendContent />}
-                        verticalAlign="bottom"
-                      />
-                    </PieChart>
-                  </ChartContainer>
+                  <ReactPieChart
+                    data={pieChartData}
+                    width={400}
+                    height={350}
+                  />
                 </CardContent>
               </Card>
 
