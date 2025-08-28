@@ -19,7 +19,7 @@ const WorkflowNode = ({ data }: NodeProps) => {
   const getNodeStyles = () => {
     switch (nodeData.type) {
       case 'workflow':
-        return 'bg-workflow-canvas border-2 border-dashed border-workflow-border rounded-lg min-w-[900px] min-h-[500px] p-8 relative shadow-lg';
+        return 'bg-workflow-canvas border-2 border-dashed border-workflow-border rounded-lg min-w-[900px] min-h-[500px] p-8 relative shadow-lg block';
       case 'stage':
         return 'bg-workflow-node-bg border-2 border-workflow-stage-border rounded-md p-6 min-w-[200px] min-h-[120px] cursor-pointer hover:shadow-lg transition-all duration-200 shadow-md';
       case 'data':
@@ -40,7 +40,7 @@ const WorkflowNode = ({ data }: NodeProps) => {
   };
 
   const getWrapperStyles = () => {
-    return 'border-4 border-workflow-border rounded-lg p-4 bg-workflow-canvas shadow-xl';
+    return 'border-4 border-workflow-border rounded-lg bg-workflow-canvas shadow-xl inline-block';
   };
 
   const handleClick = () => {
