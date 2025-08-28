@@ -27,7 +27,7 @@ export const calculateDynamicLayout = (
   // Calculate dynamic workflow width based on number of nodes
   const maxNodes = Math.max(statusNodes.length, eventNodes.length);
   const minSpacing = 60; // Increased minimum spacing between nodes
-  const dynamicWorkflowWidth = Math.max(500, Math.min(1200, (2 * padding) + (maxNodes * stageWidth) + ((maxNodes - 1) * minSpacing))); // Width between 500px-1200px
+  const dynamicWorkflowWidth = Math.max(600, (2 * padding) + (maxNodes * stageWidth) + ((maxNodes - 1) * minSpacing)); // Minimum width of 600px
   
   // Calculate dynamic workflow height based on content
   const dynamicWorkflowHeight = Math.max(350, (2 * padding) + stageHeight + verticalSpacing + circleSize + 60); // Minimum height of 350px
