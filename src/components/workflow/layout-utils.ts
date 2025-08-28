@@ -18,15 +18,19 @@ export const calculateDynamicLayout = (
   config: LayoutConfig = defaultLayoutConfig
 ) => {
   const { nodes } = workflowData;
-  const { workflowWidth, stageWidth, padding, verticalSpacing, stageHeight, circleSize } = config;
+  const { stageWidth, padding, verticalSpacing, stageHeight, circleSize } = config;
 
   // Separate status and event nodes
   const statusNodes = nodes.filter(node => node.type === 'status');
   const eventNodes = nodes.filter(node => node.type === 'event');
 
-  // Calculate horizontal spacing based on number of nodes
+  // Calculate dynamic workflow width based on number of nodes
   const maxNodes = Math.max(statusNodes.length, eventNodes.length);
-  const availableWidth = workflowWidth - (2 * padding);
+  const minSpacing = 20; // Minimum spacing between nodes
+  const dynamicWorkflowWidth = (2 * padding) + (maxNodes * stageWidth) + ((maxNodes - 1) * Math.max(minSpacing, 40));
+  
+  // Calculate horizontal spacing based on number of nodes
+  const availableWidth = dynamicWorkflowWidth - (2 * padding);
   const totalNodeWidth = maxNodes * stageWidth;
   const nodeSpacing = maxNodes > 1 ? (availableWidth - totalNodeWidth) / (maxNodes - 1) : 0;
 
@@ -35,6 +39,7 @@ export const calculateDynamicLayout = (
   const eventY = statusY + stageHeight + verticalSpacing;
 
   return {
+    dynamicWorkflowWidth,
     nodeSpacing: Math.max(nodeSpacing, 20), // Minimum spacing
     statusY,
     eventY,
@@ -68,7 +73,7 @@ export const createDynamicNodes = (
       description: workflowData.description,
       type: 'workflow',
     } as WorkflowNodeData,
-    style: { width: config.workflowWidth, height: config.workflowHeight },
+    style: { width: layout.dynamicWorkflowWidth, height: config.workflowHeight },
     draggable: true,
   });
 
