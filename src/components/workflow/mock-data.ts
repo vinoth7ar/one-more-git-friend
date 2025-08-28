@@ -30,49 +30,93 @@ const ebmVersionWorkflow: SimpleWorkflow = {
   description: 'Workflow definition for grouping a set of application versions into an EBM version',
   nodes: [
     {
-      id: 'n1',
-      type: 'event',
-      label: 'Create'
+      id: 's1',
+      type: 'status',
+      label: 'Start'
     },
     {
-      id: 'n2',
+      id: 's2',
       type: 'status',
       label: 'Created'
     },
     {
-      id: 'n3',
+      id: 'ev1',
+      type: 'event',
+      label: 'Link'
+    },
+    {
+      id: 's3',
+      type: 'status',
+      label: 'Locked'
+    },
+    {
+      id: 'ev2',
+      type: 'event',
+      label: 'Approve'
+    },
+    {
+      id: 's4',
+      type: 'status',
+      label: 'Deployed'
+    },
+    {
+      id: 'ev3',
       type: 'event',
       label: 'Deploy'
     },
     {
-      id: 'n4',
+      id: 's5',
       type: 'status',
-      label: 'Deployed'
+      label: 'Canceled'
     }
   ],
   edges: [
     {
       id: 'e1',
-      source: 'n1',
-      target: 'n2',
-      label: 'Version created'
+      source: 's1',
+      target: 'ev1',
+      label: 'Link'
     },
     {
       id: 'e2',
-      source: 'n2',
-      target: 'n3',
-      label: 'Ready to deploy'
+      source: 'ev1',
+      target: 's2',
+      label: 'Created'
     },
     {
       id: 'e3',
-      source: 'n3',
-      target: 'n4',
-      label: 'Deployment complete'
+      source: 's2',
+      target: 'ev2',
+      label: 'Approve'
+    },
+    {
+      id: 'e4',
+      source: 'ev2',
+      target: 's3',
+      label: 'Locked'
+    },
+    {
+      id: 'e5',
+      source: 's3',
+      target: 'ev3',
+      label: 'Deploy EBM version'
+    },
+    {
+      id: 'e6',
+      source: 'ev3',
+      target: 's4',
+      label: 'Deployed'
+    },
+    {
+      id: 'e7',
+      source: 's4',
+      target: 's5',
+      label: 'Canceled'
     }
   ]
 };
 
-// Customer Onboarding workflow
+// Customer Onboarding workflow - simplified version
 const customerOnboardingWorkflow: SimpleWorkflow = {
   id: 'customer-onboarding',
   name: 'Customer Onboarding',
@@ -87,16 +131,6 @@ const customerOnboardingWorkflow: SimpleWorkflow = {
       id: 'co2',
       type: 'status',
       label: 'Registered'
-    },
-    {
-      id: 'co3',
-      type: 'event',
-      label: 'Verify'
-    },
-    {
-      id: 'co4',
-      type: 'status',
-      label: 'Verified'
     }
   ],
   edges: [
@@ -105,26 +139,14 @@ const customerOnboardingWorkflow: SimpleWorkflow = {
       source: 'co1',
       target: 'co2',
       label: 'Customer registered'
-    },
-    {
-      id: 'co_e2',
-      source: 'co2',
-      target: 'co3',
-      label: 'Identity verification step'
-    },
-    {
-      id: 'co_e3',
-      source: 'co3',
-      target: 'co4',
-      label: 'Identity confirmed'
     }
   ]
 };
 
-// Payment Processing workflow
+// Payment Processing workflow - simplified version
 const paymentProcessingWorkflow: SimpleWorkflow = {
   id: 'payment-processing',
-  name: 'Payment Processing',
+  name: 'Payment Processing',  
   description: 'End-to-end payment processing workflow',
   nodes: [
     {
@@ -136,16 +158,6 @@ const paymentProcessingWorkflow: SimpleWorkflow = {
       id: 'pp2',
       type: 'status',
       label: 'Processing'
-    },
-    {
-      id: 'pp3',
-      type: 'event',
-      label: 'Complete'
-    },
-    {
-      id: 'pp4',
-      type: 'status',
-      label: 'Completed'
     }
   ],
   edges: [
@@ -154,18 +166,6 @@ const paymentProcessingWorkflow: SimpleWorkflow = {
       source: 'pp1',
       target: 'pp2',
       label: 'Payment initiated'
-    },
-    {
-      id: 'pp_e2',
-      source: 'pp2',
-      target: 'pp3',
-      label: 'Ready to complete'
-    },
-    {
-      id: 'pp_e3',
-      source: 'pp3',
-      target: 'pp4',
-      label: 'Transaction done'
     }
   ]
 };

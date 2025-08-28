@@ -20,21 +20,28 @@ export const calculateDynamicLayout = (
   const { stages, statusNodes, entities } = workflowData;
   const { workflowWidth, stageWidth, padding, verticalSpacing, stageHeight, circleSize } = config;
 
+  // Calculate the maximum number of nodes in a row to determine layout
+  const maxNodesPerRow = Math.max(stages.length, statusNodes.length);
+  
   // Calculate horizontal spacing based on number of stages
   const availableWidth = workflowWidth - (2 * padding);
-  const totalStageWidth = stages.length * stageWidth;
-  const stageSpacing = stages.length > 1 ? (availableWidth - totalStageWidth) / (stages.length - 1) : 0;
+  const totalStageWidth = maxNodesPerRow * stageWidth;
+  const stageSpacing = maxNodesPerRow > 1 ? (availableWidth - totalStageWidth) / (maxNodesPerRow - 1) : 0;
 
-  // Calculate positions for each row
+  // Calculate positions for each row - make workflow taller to accommodate more nodes
   const stageY = 70;
   const circleY = stageY + stageHeight + 20; // Closer to event nodes
-  const entitiesY = circleY + circleSize + verticalSpacing;
+  const entitiesY = circleY + circleSize + verticalSpacing + 40; // Extra space for more status nodes
+  
+  // Update workflow height based on content
+  const dynamicHeight = entitiesY + 100; // Add padding at bottom
 
   return {
     stageSpacing: Math.max(stageSpacing, 20), // Minimum spacing
     stageY,
     circleY,
     entitiesY,
+    dynamicHeight,
     getStagePosition: (index: number) => ({
       x: padding + (index * (stageWidth + stageSpacing)),
       y: stageY,
@@ -82,7 +89,7 @@ export const createDynamicNodes = (
       description: workflowData.workflow.description,
       type: 'workflow',
     } as WorkflowNodeData,
-    style: { width: config.workflowWidth, height: config.workflowHeight },
+    style: { width: config.workflowWidth, height: layout.dynamicHeight },
     draggable: true,
   });
 
