@@ -48,8 +48,6 @@ import {
   Settings,
   ArrowForward
 } from '@mui/icons-material';
-import { updateConnectionsForWorkflow as importedUpdateConnectionsForWorkflow } from '../workflow/connection-utils';
-import { simpleWorkflows } from '../workflow/mock-data';
 // ============================================================================
 // WORKFLOW BUILDER DEPENDENCIES SECTION (All Inlined)
 // ============================================================================
@@ -448,7 +446,20 @@ export const generateIntelligentConnections = (workflowData: WorkflowData): Edge
   return edges;
 };
 
-// Removed duplicate function - using the imported one from connection-utils.ts
+export const updateConnectionsForWorkflow = (
+  workflowData: WorkflowData,
+  existingEdges: Edge[] = []
+): Edge[] => {
+  // Generate new intelligent connections
+  const newConnections = generateIntelligentConnections(workflowData);
+  
+  // Keep any custom user-added edges that don't conflict
+  const customEdges = existingEdges.filter(edge => 
+    !newConnections.some(newEdge => newEdge.id === edge.id)
+  );
+
+  return [...newConnections, ...customEdges];
+};
 
 // ===========================================
 // WORKFLOW SIDEBAR COMPONENT (from WorkflowSidebar.tsx)  
@@ -468,9 +479,10 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
   ];
 
   const workflows = [
-    { id: 'ebm-version', name: 'EBM Version' },
-    { id: 'customer-onboarding', name: 'Customer Onboarding' },
-    { id: 'payment-processing', name: 'Payment Processing' },
+    { id: 'hypo-loan-position', name: 'Hypo Loan Position' },
+    { id: 'hypo-loan', name: 'Hypo Loan' },
+    { id: 'workflow-1', name: 'Customer Onboarding' },
+    { id: 'workflow-2', name: 'Payment Processing' },
   ];
 
   return (
@@ -555,34 +567,18 @@ const WorkflowBuilder = ({
   const [entitiesExpanded, setEntitiesExpanded] = useState(false);
   
   // Get current workflow data - prefer external data, fallback to mock data
-  const rawWorkflowData = externalWorkflowData || 
-                          mockWorkflows[selectedWorkflowId] || 
-                          mockWorkflows[defaultWorkflow];
-                          
-  // Convert SimpleWorkflow to WorkflowData if needed
-  const currentWorkflowData = useMemo(() => {
-    if (!rawWorkflowData) return null;
-    if (isSimpleWorkflow(rawWorkflowData)) {
-      return convertSimpleWorkflowToWorkflowData(rawWorkflowData);
-    }
-    return rawWorkflowData as WorkflowData;
-  }, [rawWorkflowData]);
+  const currentWorkflowData = externalWorkflowData || 
+                              mockWorkflows[selectedWorkflowId] || 
+                              mockWorkflows[defaultWorkflow];
   
   // Create initial nodes and edges dynamically
-  const initialNodes = currentWorkflowData ? createDynamicNodes(
+  const initialNodes = createDynamicNodes(
     currentWorkflowData, 
     entitiesExpanded, 
     () => setEntitiesExpanded(!entitiesExpanded),
     layoutConfig
-  ) : [];
-  
-  // Get the corresponding simple workflow for edge information
-  const currentSimpleWorkflow = simpleWorkflows[selectedWorkflowId];
-  const initialEdges = currentWorkflowData ? importedUpdateConnectionsForWorkflow(
-    currentWorkflowData, 
-    [],
-    currentSimpleWorkflow
-  ) : [];
+  );
+  const initialEdges = updateConnectionsForWorkflow(currentWorkflowData);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -612,8 +608,6 @@ const WorkflowBuilder = ({
 
   // Update nodes when entities expansion state changes or workflow changes
   useEffect(() => {
-    if (!currentWorkflowData) return;
-    
     const updatedNodes = createDynamicNodes(
       currentWorkflowData,
       entitiesExpanded,
@@ -625,16 +619,9 @@ const WorkflowBuilder = ({
 
   // Update connections when workflow data changes
   useEffect(() => {
-    if (!currentWorkflowData) return;
-    
-    const currentSimpleWorkflow = simpleWorkflows[selectedWorkflowId];
-    const updatedEdges = importedUpdateConnectionsForWorkflow(
-      currentWorkflowData, 
-      [],
-      currentSimpleWorkflow
-    );
+    const updatedEdges = updateConnectionsForWorkflow(currentWorkflowData);
     setEdges(updatedEdges);
-  }, [currentWorkflowData, selectedWorkflowId, setEdges]);
+  }, [currentWorkflowData, setEdges]);
 
   return (
     <div className="flex h-screen w-full bg-workflow-bg">
@@ -650,7 +637,7 @@ const WorkflowBuilder = ({
           fitView
           className="bg-workflow-canvas rounded-lg"
           defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
-          nodesDraggable={false}
+          nodesDraggable={true}
           nodesConnectable={true}
           elementsSelectable={true}
         >
@@ -722,118 +709,270 @@ export interface LayoutConfig {
 // MOCK DATA SECTION (Inlined from workflow/mock-data.ts)
 // ============================================================================
 
-// New workflow structure based on uploaded JSON
-export interface SimpleWorkflowNode {
-  id: string;
-  type: 'status' | 'event';
-  label: string;
-}
-
-export interface SimpleWorkflowEdge {
-  id: string;
-  source: string;
-  target: string;
-  label: string;
-}
-
-export interface SimpleWorkflow {
-  id: string;
-  name: string;
-  description: string;
-  nodes: SimpleWorkflowNode[];
-  edges: SimpleWorkflowEdge[];
-}
-
-// Converter function to transform SimpleWorkflow to WorkflowData
-export function convertSimpleWorkflowToWorkflowData(simpleWorkflow: SimpleWorkflow): WorkflowData {
-  return {
+export const mockWorkflows: Record<string, WorkflowData> = {
+  'hypo-loan-position': {
     workflow: {
-      id: simpleWorkflow.id,
-      title: simpleWorkflow.name,
-      description: simpleWorkflow.description,
+      id: 'hypo-loan-position-workflow',
+      title: 'Hypo Loan Position',
+      description: 'Workflow description',
     },
-    stages: simpleWorkflow.nodes
-      .filter(node => node.type === 'event')
-      .map(node => ({
-        id: node.id,
-        title: node.label,
-        description: `${node.type} node`,
-        color: 'default'
-      })),
-    statusNodes: simpleWorkflow.nodes
-      .filter(node => node.type === 'status')
-      .map(node => ({
-        id: node.id,
-        label: node.label,
-        color: 'default'
-      })),
-    entities: [] // Empty for simple workflows
-  };
-}
-
-// Helper function to check if data is SimpleWorkflow
-export function isSimpleWorkflow(data: any): data is SimpleWorkflow {
-  return data && typeof data.name === 'string' && Array.isArray(data.nodes) && Array.isArray(data.edges);
-}
-
-// Updated mock workflows with new structure
-export const mockWorkflows: Record<string, SimpleWorkflow> = {
-  'ebm-version': {
-    id: 'f564cd67-2502-46a1-8494-4f61df616811',
-    name: 'EBM Version',
-    description: 'Workflow definition for grouping a set of application versions into an EBM version',
-    nodes: [
+    stages: [
       {
-        id: 'n1',
-        type: 'status',
-        label: 'Start'
+        id: 'stage-node',
+        title: 'Stage',
+        description: 'PLMF stages commitment data in PMF database.',
+        color: 'gray',
       },
       {
-        id: 'n2',
-        type: 'status',
-        label: 'Created'
-      },
-      {
-        id: 'n3',
-        type: 'event',
-        label: 'Link'
-      },
-      {
-        id: 'n4',
-        type: 'status',
-        label: 'Deployed'
+        id: 'enrich-node', 
+        title: 'Enrich',
+        description: 'PMF enriches hypo loan positions.',
+        color: 'gray',
       }
     ],
-    edges: [
+    statusNodes: [
       {
-        id: 'e1',
-        source: 'n1',
-        target: 'n3',
-        label: 'Create EBM version'
+        id: 'staged-circle',
+        label: 'staged',
+        color: 'gray',
+        connectedToStage: 'stage-node',
+        connectedToEntities: ['data-entity-1'],
       },
       {
-        id: 'e2',
-        source: 'n3',
-        target: 'n2',
-        label: 'Created'
+        id: 'position-created-circle',
+        label: 'position created',
+        color: 'gray',
+        connectedToStage: 'enrich-node',
+        connectedToEntities: ['data-entity-1'],
+      }
+    ],
+    entities: [
+      {
+        id: 'data-entity-1',
+        title: 'Hypo Loan Position',
+        color: 'yellow',
       },
       {
-        id: 'e3',
-        source: 'n2',
-        target: 'n3',
-        label: 'Modify EBM version'
+        id: 'data-entity-2', 
+        title: 'Loan Commitment',
+        color: 'gray',
       },
       {
-        id: 'e4',
-        source: 'n3',
-        target: 'n4',
-        label: 'Deploy'
+        id: 'data-entity-3',
+        title: 'Hypo Loan Base Price',
+        color: 'gray',
+      }
+    ]
+  },
+
+  'hypo-loan': {
+    workflow: {
+      id: 'hypo-loan-workflow',
+      title: 'Hypo Loan',
+      description: 'Complete loan processing workflow',
+    },
+    stages: [
+      {
+        id: 'validate-stage',
+        title: 'Validate',
+        description: 'Validate loan application data.',
+        color: 'blue',
+      },
+      {
+        id: 'process-stage',
+        title: 'Process',
+        description: 'Process loan through system.',
+        color: 'green',
+      },
+      {
+        id: 'approve-stage',
+        title: 'Approve',
+        description: 'Final approval stage.',
+        color: 'purple',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'validated-status',
+        label: 'validated',
+        color: 'blue',
+        connectedToStage: 'validate-stage',
+        connectedToEntities: ['loan-entity', 'customer-entity'],
+      },
+      {
+        id: 'processed-status',
+        label: 'processed',
+        color: 'green',
+        connectedToStage: 'process-stage',
+        connectedToEntities: ['loan-entity', 'approval-entity'],
+      },
+      {
+        id: 'approved-status',
+        label: 'approved',
+        color: 'purple',
+        connectedToStage: 'approve-stage',
+        connectedToEntities: ['loan-entity', 'approval-entity'],
+      }
+    ],
+    entities: [
+      {
+        id: 'loan-entity',
+        title: 'Loan Application',
+        color: 'yellow',
+      },
+      {
+        id: 'customer-entity',
+        title: 'Customer Profile',
+        color: 'gray',
+      },
+      {
+        id: 'approval-entity',
+        title: 'Approval Record',
+        color: 'gray',
+      },
+      {
+        id: 'rate-entity',
+        title: 'Interest Rate',
+        color: 'gray',
+      }
+    ]
+  },
+
+  'workflow-1': {
+    workflow: {
+      id: 'workflow-1-id',
+      title: 'Customer Onboarding',
+      description: 'New customer registration workflow',
+    },
+    stages: [
+      {
+        id: 'registration-stage',
+        title: 'Register',
+        description: 'Customer registration process.',
+        color: 'orange',
+      },
+      {
+        id: 'verification-stage',
+        title: 'Verify',
+        description: 'Identity verification step.',
+        color: 'red',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'registered-status',
+        label: 'registered',
+        color: 'orange',
+        connectedToStage: 'registration-stage',
+        connectedToEntities: ['customer-profile'],
+      },
+      {
+        id: 'verified-status',
+        label: 'verified',
+        color: 'red',
+        connectedToStage: 'verification-stage',
+        connectedToEntities: ['customer-profile', 'verification-record'],
+      }
+    ],
+    entities: [
+      {
+        id: 'customer-profile',
+        title: 'Customer Profile',
+        color: 'yellow',
+      },
+      {
+        id: 'verification-record',
+        title: 'Verification Record',
+        color: 'gray',
+      },
+      {
+        id: 'compliance-check',
+        title: 'Compliance Check',
+        color: 'gray',
+      }
+    ]
+  },
+
+  'workflow-2': {
+    workflow: {
+      id: 'workflow-2-id',
+      title: 'Payment Processing',
+      description: 'Transaction payment workflow',
+    },
+    stages: [
+      {
+        id: 'capture-stage',
+        title: 'Capture',
+        description: 'Capture payment details.',
+        color: 'teal',
+      },
+      {
+        id: 'authorize-stage',
+        title: 'Authorize',
+        description: 'Authorize payment transaction.',
+        color: 'indigo',
+      },
+      {
+        id: 'settle-stage',
+        title: 'Settle',
+        description: 'Settle the payment.',
+        color: 'pink',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'captured-status',
+        label: 'captured',
+        color: 'teal',
+        connectedToStage: 'capture-stage',
+        connectedToEntities: ['payment-details'],
+      },
+      {
+        id: 'authorized-status',
+        label: 'authorized',
+        color: 'indigo',
+        connectedToStage: 'authorize-stage',
+        connectedToEntities: ['payment-details', 'auth-record'],
+      },
+      {
+        id: 'settled-status',
+        label: 'settled',
+        color: 'pink',
+        connectedToStage: 'settle-stage',
+        connectedToEntities: ['payment-details', 'settlement-record'],
+      }
+    ],
+    entities: [
+      {
+        id: 'payment-details',
+        title: 'Payment Details',
+        color: 'yellow',
+      },
+      {
+        id: 'auth-record',
+        title: 'Authorization Record',
+        color: 'gray',
+      },
+      {
+        id: 'settlement-record',
+        title: 'Settlement Record',
+        color: 'gray',
+      },
+      {
+        id: 'merchant-account',
+        title: 'Merchant Account',
+        color: 'gray',
+      },
+      {
+        id: 'transaction-log',
+        title: 'Transaction Log',
+        color: 'gray',
       }
     ]
   }
 };
 
-export const defaultWorkflow = 'ebm-version';
+export const defaultWorkflow = 'hypo-loan-position';
 
 // ============================================================================
 // TYPES SECTION - Move to: src/components/SingleView/types.ts
@@ -866,14 +1005,14 @@ export interface WorkflowOption {
 // HOOKS SECTION - Move to: src/components/SingleView/hooks/useWorkflowData.ts
 // ============================================================================
 
-// Backend integration hook - Updated to handle both WorkflowData and SimpleWorkflow
-export function useWorkflowData(type: 'workflow' | 'entity' | null, id: string | null): WorkflowData | SimpleWorkflow | null {
-  const [backendData, setBackendData] = useState<WorkflowData | SimpleWorkflow | null>(null);
+// Backend integration hook
+export function useWorkflowData(type: 'workflow' | 'entity' | null, id: string | null): WorkflowData | null {
+  const [backendData, setBackendData] = useState<WorkflowData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Function to fetch from backend
-  const fetchWorkflowFromBackend = async (workflowId: string): Promise<WorkflowData | SimpleWorkflow | null> => {
+  const fetchWorkflowFromBackend = async (workflowId: string): Promise<WorkflowData | null> => {
     try {
       // TODO: Replace with actual backend API call
       // const response = await fetch(`/api/workflows/${workflowId}`);
@@ -928,8 +1067,8 @@ export function useAvailableOptions() {
     // Convert mock workflows to selection options
     const workflowOptions = Object.entries(mockWorkflows).map(([id, data]) => ({
       id,
-      title: data.name, // Changed from data.workflow.title to data.name
-      description: data.description, // Changed from data.workflow.description to data.description
+      title: data.workflow.title,
+      description: data.workflow.description,
       category: 'workflow' as const,
     }));
 
@@ -949,8 +1088,8 @@ export function useAvailableWorkflows() {
   return useMemo(() => {
     return Object.entries(mockWorkflows).map(([id, data]) => ({
       id,
-      title: data.name, // Changed from data.workflow.title to data.name
-      description: data.description, // Changed from data.workflow.description to data.description
+      title: data.workflow.title,
+      description: data.workflow.description,
     }));
   }, []);
 }
@@ -1277,7 +1416,7 @@ export function VisualizationPage() {
   const navigate = useNavigate();
   
   // Default to first workflow if no URL params
-  const workflowId = id || 'ebm-version';
+  const workflowId = id || 'workflow-1';
   const availableWorkflows = useAvailableWorkflows();
   
   // Get workflow data - use default workflow if no URL params
@@ -1315,9 +1454,7 @@ export function VisualizationPage() {
       <AppBar position="static" color="transparent" elevation={1}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Workflow Visualization - {
-              'name' in workflowData ? workflowData.name : workflowData.workflow.title
-            }
+            Workflow Visualization - {workflowData.workflow.title}
           </Typography>
         </Toolbar>
       </AppBar>
@@ -1326,7 +1463,7 @@ export function VisualizationPage() {
       <Box sx={{ flexGrow: 1 }}>
         <WorkflowBuilder 
           selectedWorkflowId={displayWorkflowId}
-          workflowData={workflowData as any}
+          workflowData={workflowData}
           onWorkflowSelect={handleWorkflowSelect}
         />
       </Box>
@@ -1390,5 +1527,5 @@ export function LandingPage() {
 // MAIN EXPORTS - Move to: src/components/SingleView/index.tsx
 // ============================================================================
 
-// Default export for easier importing
-export default VisualizationPage;
+// Functions and components are already exported inline above
+// No need for duplicate exports here

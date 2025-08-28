@@ -20,28 +20,21 @@ export const calculateDynamicLayout = (
   const { stages, statusNodes, entities } = workflowData;
   const { workflowWidth, stageWidth, padding, verticalSpacing, stageHeight, circleSize } = config;
 
-  // Calculate the maximum number of nodes in a row to determine layout
-  const maxNodesPerRow = Math.max(stages.length, statusNodes.length);
-  
   // Calculate horizontal spacing based on number of stages
   const availableWidth = workflowWidth - (2 * padding);
-  const totalStageWidth = maxNodesPerRow * stageWidth;
-  const stageSpacing = maxNodesPerRow > 1 ? (availableWidth - totalStageWidth) / (maxNodesPerRow - 1) : 0;
+  const totalStageWidth = stages.length * stageWidth;
+  const stageSpacing = stages.length > 1 ? (availableWidth - totalStageWidth) / (stages.length - 1) : 0;
 
-  // Calculate positions for each row - make workflow taller to accommodate more nodes
+  // Calculate positions for each row
   const stageY = 70;
-  const circleY = stageY + stageHeight + 20; // Closer to event nodes
-  const entitiesY = circleY + circleSize + verticalSpacing + 40; // Extra space for more status nodes
-  
-  // Update workflow height based on content
-  const dynamicHeight = entitiesY + 100; // Add padding at bottom
+  const circleY = stageY + stageHeight + verticalSpacing;
+  const entitiesY = circleY + circleSize + verticalSpacing;
 
   return {
     stageSpacing: Math.max(stageSpacing, 20), // Minimum spacing
     stageY,
     circleY,
     entitiesY,
-    dynamicHeight,
     getStagePosition: (index: number) => ({
       x: padding + (index * (stageWidth + stageSpacing)),
       y: stageY,
@@ -89,29 +82,29 @@ export const createDynamicNodes = (
       description: workflowData.workflow.description,
       type: 'workflow',
     } as WorkflowNodeData,
-    style: { width: config.workflowWidth, height: layout.dynamicHeight },
+    style: { width: config.workflowWidth, height: config.workflowHeight },
     draggable: true,
   });
 
-  // Event nodes (rectangular) - positioned dynamically
+  // Stage nodes - positioned dynamically
   workflowData.stages.forEach((stage, index) => {
     const position = layout.getStagePosition(index);
     
     nodes.push({
       id: stage.id,
-      type: 'workflow-node',
+      type: 'stage',
       position,
       data: {
         title: stage.title,
         description: stage.description,
-        type: 'process',
+        type: 'stage',
         color: stage.color,
         onClick: () => console.log(`${stage.title} event clicked`),
       } as WorkflowNodeData,
       parentId: workflowData.workflow.id,
       extent: 'parent',
       style: { width: config.stageWidth, height: config.stageHeight },
-      draggable: false,
+      draggable: true,
     });
   });
 
@@ -130,7 +123,7 @@ export const createDynamicNodes = (
       } as CircularNodeData,
       parentId: workflowData.workflow.id,
       extent: 'parent',
-      draggable: false,
+      draggable: true,
     });
   });
 

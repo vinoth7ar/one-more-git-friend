@@ -1,217 +1,266 @@
-// Import existing workflow types
 import { WorkflowData } from './types';
 
-// New workflow data structure based on uploaded JSON
-export interface SimpleWorkflowNode {
-  id: string;
-  type: 'status' | 'event';
-  label: string;
-}
-
-export interface SimpleWorkflowEdge {
-  id: string;
-  source: string;
-  target: string;
-  label: string;
-}
-
-export interface SimpleWorkflow {
-  id: string;
-  name: string;
-  description: string;
-  nodes: SimpleWorkflowNode[];
-  edges: SimpleWorkflowEdge[];
-}
-
-// EBM Version workflow from user's JSON
-const ebmVersionWorkflow: SimpleWorkflow = {
-  id: 'f564cd67-2502-46a1-8494-4f61df616811',
-  name: 'EBM Version',
-  description: 'Workflow definition for grouping a set of application versions into an EBM version',
-  nodes: [
-    {
-      id: 's1',
-      type: 'status',
-      label: 'Start'
-    },
-    {
-      id: 's2',
-      type: 'status',
-      label: 'Created'
-    },
-    {
-      id: 'ev1',
-      type: 'event',
-      label: 'Link'
-    },
-    {
-      id: 's3',
-      type: 'status',
-      label: 'Locked'
-    },
-    {
-      id: 'ev2',
-      type: 'event',
-      label: 'Approve'
-    },
-    {
-      id: 's4',
-      type: 'status',
-      label: 'Deployed'
-    },
-    {
-      id: 'ev3',
-      type: 'event',
-      label: 'Deploy'
-    },
-    {
-      id: 's5',
-      type: 'status',
-      label: 'Canceled'
-    }
-  ],
-  edges: [
-    {
-      id: 'e1',
-      source: 's1',
-      target: 'ev1',
-      label: 'Link'
-    },
-    {
-      id: 'e2',
-      source: 'ev1',
-      target: 's2',
-      label: 'Created'
-    },
-    {
-      id: 'e3',
-      source: 's2',
-      target: 'ev2',
-      label: 'Approve'
-    },
-    {
-      id: 'e4',
-      source: 'ev2',
-      target: 's3',
-      label: 'Locked'
-    },
-    {
-      id: 'e5',
-      source: 's3',
-      target: 'ev3',
-      label: 'Deploy EBM version'
-    },
-    {
-      id: 'e6',
-      source: 'ev3',
-      target: 's4',
-      label: 'Deployed'
-    },
-    {
-      id: 'e7',
-      source: 's4',
-      target: 's5',
-      label: 'Canceled'
-    }
-  ]
-};
-
-// Customer Onboarding workflow - simplified version
-const customerOnboardingWorkflow: SimpleWorkflow = {
-  id: 'customer-onboarding',
-  name: 'Customer Onboarding',
-  description: 'New customer registration workflow',
-  nodes: [
-    {
-      id: 'co1',
-      type: 'event',
-      label: 'Register'
-    },
-    {
-      id: 'co2',
-      type: 'status',
-      label: 'Registered'
-    }
-  ],
-  edges: [
-    {
-      id: 'co_e1',
-      source: 'co1',
-      target: 'co2',
-      label: 'Customer registered'
-    }
-  ]
-};
-
-// Payment Processing workflow - simplified version
-const paymentProcessingWorkflow: SimpleWorkflow = {
-  id: 'payment-processing',
-  name: 'Payment Processing',  
-  description: 'End-to-end payment processing workflow',
-  nodes: [
-    {
-      id: 'pp1',
-      type: 'event',
-      label: 'Process'
-    },
-    {
-      id: 'pp2',
-      type: 'status',
-      label: 'Processing'
-    }
-  ],
-  edges: [
-    {
-      id: 'pp_e1',
-      source: 'pp1',
-      target: 'pp2',
-      label: 'Payment initiated'
-    }
-  ]
-};
-
-// Convert the new JSON structure to work with existing WorkflowBuilder
-const convertToWorkflowData = (simpleWorkflow: SimpleWorkflow): WorkflowData => {
-  return {
-    workflow: {
-      id: simpleWorkflow.id,
-      title: simpleWorkflow.name,
-      description: simpleWorkflow.description,
-    },
-    stages: simpleWorkflow.nodes
-      .filter(node => node.type === 'event')
-      .map(node => ({
-        id: node.id,
-        title: node.label,
-        description: `${node.type} node`
-      })),
-    statusNodes: simpleWorkflow.nodes
-      .filter(node => node.type === 'status')
-      .map(node => ({
-        id: node.id,
-        label: node.label,
-        color: 'default' as const
-      })),
-    entities: [
-      { id: 'entity-1', title: 'Customer Data', color: 'yellow' },
-      { id: 'entity-2', title: 'Payment Info', color: 'yellow' },
-      { id: 'entity-3', title: 'Order Details' }
-    ]
-  };
-};
-
-// Update existing workflows to include new EBM data
 export const mockWorkflows: Record<string, WorkflowData> = {
-  'ebm-version': convertToWorkflowData(ebmVersionWorkflow),
-  'customer-onboarding': convertToWorkflowData(customerOnboardingWorkflow),
-  'payment-processing': convertToWorkflowData(paymentProcessingWorkflow)
+  'hypo-loan-position': {
+    workflow: {
+      id: 'hypo-loan-position-workflow',
+      title: 'Hypo Loan Position',
+      description: 'Workflow description',
+    },
+    stages: [
+      {
+        id: 'stage-node',
+        title: 'Stage',
+        description: 'PLMF stages commitment data in PMF database.',
+        color: 'gray',
+      },
+      {
+        id: 'enrich-node', 
+        title: 'Enrich',
+        description: 'PMF enriches hypo loan positions.',
+        color: 'gray',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'staged-circle',
+        label: 'staged',
+        color: 'gray',
+        connectedToStage: 'stage-node',
+        connectedToEntities: ['data-entity-1'],
+      },
+      {
+        id: 'position-created-circle',
+        label: 'position created',
+        color: 'gray',
+        connectedToStage: 'enrich-node',
+        connectedToEntities: ['data-entity-1'],
+      }
+    ],
+    entities: [
+      {
+        id: 'data-entity-1',
+        title: 'Hypo Loan Position',
+        color: 'yellow',
+      },
+      {
+        id: 'data-entity-2', 
+        title: 'Loan Commitment',
+        color: 'gray',
+      },
+      {
+        id: 'data-entity-3',
+        title: 'Hypo Loan Base Price',
+        color: 'gray',
+      }
+    ]
+  },
+
+  'hypo-loan': {
+    workflow: {
+      id: 'hypo-loan-workflow',
+      title: 'Hypo Loan',
+      description: 'Complete loan processing workflow',
+    },
+    stages: [
+      {
+        id: 'validate-stage',
+        title: 'Validate',
+        description: 'Validate loan application data.',
+        color: 'blue',
+      },
+      {
+        id: 'process-stage',
+        title: 'Process',
+        description: 'Process loan through system.',
+        color: 'green',
+      },
+      {
+        id: 'approve-stage',
+        title: 'Approve',
+        description: 'Final approval stage.',
+        color: 'purple',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'validated-status',
+        label: 'validated',
+        color: 'blue',
+        connectedToStage: 'validate-stage',
+        connectedToEntities: ['loan-entity', 'customer-entity'],
+      },
+      {
+        id: 'processed-status',
+        label: 'processed',
+        color: 'green',
+        connectedToStage: 'process-stage',
+        connectedToEntities: ['loan-entity', 'approval-entity'],
+      },
+      {
+        id: 'approved-status',
+        label: 'approved',
+        color: 'purple',
+        connectedToStage: 'approve-stage',
+        connectedToEntities: ['loan-entity', 'approval-entity'],
+      }
+    ],
+    entities: [
+      {
+        id: 'loan-entity',
+        title: 'Loan Application',
+        color: 'yellow',
+      },
+      {
+        id: 'customer-entity',
+        title: 'Customer Profile',
+        color: 'gray',
+      },
+      {
+        id: 'approval-entity',
+        title: 'Approval Record',
+        color: 'gray',
+      },
+      {
+        id: 'rate-entity',
+        title: 'Interest Rate',
+        color: 'gray',
+      }
+    ]
+  },
+
+  'workflow-1': {
+    workflow: {
+      id: 'workflow-1-id',
+      title: 'Customer Onboarding',
+      description: 'New customer registration workflow',
+    },
+    stages: [
+      {
+        id: 'registration-stage',
+        title: 'Register',
+        description: 'Customer registration process.',
+        color: 'orange',
+      },
+      {
+        id: 'verification-stage',
+        title: 'Verify',
+        description: 'Identity verification step.',
+        color: 'red',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'registered-status',
+        label: 'registered',
+        color: 'orange',
+        connectedToStage: 'registration-stage',
+        connectedToEntities: ['customer-profile'],
+      },
+      {
+        id: 'verified-status',
+        label: 'verified',
+        color: 'red',
+        connectedToStage: 'verification-stage',
+        connectedToEntities: ['customer-profile', 'verification-record'],
+      }
+    ],
+    entities: [
+      {
+        id: 'customer-profile',
+        title: 'Customer Profile',
+        color: 'yellow',
+      },
+      {
+        id: 'verification-record',
+        title: 'Verification Record',
+        color: 'gray',
+      },
+      {
+        id: 'compliance-check',
+        title: 'Compliance Check',
+        color: 'gray',
+      }
+    ]
+  },
+
+  'workflow-2': {
+    workflow: {
+      id: 'workflow-2-id',
+      title: 'Payment Processing',
+      description: 'Transaction payment workflow',
+    },
+    stages: [
+      {
+        id: 'capture-stage',
+        title: 'Capture',
+        description: 'Capture payment details.',
+        color: 'teal',
+      },
+      {
+        id: 'authorize-stage',
+        title: 'Authorize',
+        description: 'Authorize payment transaction.',
+        color: 'indigo',
+      },
+      {
+        id: 'settle-stage',
+        title: 'Settle',
+        description: 'Settle the payment.',
+        color: 'pink',
+      }
+    ],
+    statusNodes: [
+      {
+        id: 'captured-status',
+        label: 'captured',
+        color: 'teal',
+        connectedToStage: 'capture-stage',
+        connectedToEntities: ['payment-details'],
+      },
+      {
+        id: 'authorized-status',
+        label: 'authorized',
+        color: 'indigo',
+        connectedToStage: 'authorize-stage',
+        connectedToEntities: ['payment-details', 'auth-record'],
+      },
+      {
+        id: 'settled-status',
+        label: 'settled',
+        color: 'pink',
+        connectedToStage: 'settle-stage',
+        connectedToEntities: ['payment-details', 'settlement-record'],
+      }
+    ],
+    entities: [
+      {
+        id: 'payment-details',
+        title: 'Payment Details',
+        color: 'yellow',
+      },
+      {
+        id: 'auth-record',
+        title: 'Authorization Record',
+        color: 'gray',
+      },
+      {
+        id: 'settlement-record',
+        title: 'Settlement Record',
+        color: 'gray',
+      },
+      {
+        id: 'merchant-account',
+        title: 'Merchant Account',
+        color: 'gray',
+      },
+      {
+        id: 'transaction-log',
+        title: 'Transaction Log',
+        color: 'gray',
+      }
+    ]
+  }
 };
 
-// Export the simple workflows for direct edge information
-export const simpleWorkflows: Record<string, SimpleWorkflow> = {
-  'ebm-version': ebmVersionWorkflow,
-  'customer-onboarding': customerOnboardingWorkflow,
-  'payment-processing': paymentProcessingWorkflow
-};
-
-export const defaultWorkflow = 'ebm-version';
+export const defaultWorkflow = 'hypo-loan-position';

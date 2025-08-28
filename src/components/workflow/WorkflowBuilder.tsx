@@ -28,12 +28,12 @@ interface WorkflowBuilderProps {
 }
 
 const nodeTypes = {
-  'workflow-node': WorkflowNode,
-  'workflow': WorkflowNode,
+  workflow: WorkflowNode,
+  circular: CircularNode,
+  stage: WorkflowNode,
+  data: WorkflowNode,
   'pmf-tag': WorkflowNode,
   'entities-group': WorkflowNode,
-  'process': WorkflowNode,
-  circular: CircularNode,
 };
 
 const WorkflowBuilder = ({ 
@@ -112,7 +112,7 @@ const WorkflowBuilder = ({
           fitView
           className="bg-workflow-canvas"
           defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
-          nodesDraggable={false}
+          nodesDraggable={true}
           nodesConnectable={true}
           elementsSelectable={true}
         >
