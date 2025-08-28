@@ -17,35 +17,34 @@ export const calculateDynamicLayout = (
   workflowData: WorkflowData,
   config: LayoutConfig = defaultLayoutConfig
 ) => {
-  const { stages, statusNodes, entities } = workflowData;
+  const { nodes } = workflowData;
   const { workflowWidth, stageWidth, padding, verticalSpacing, stageHeight, circleSize } = config;
 
-  // Calculate horizontal spacing based on number of stages
+  // Separate status and event nodes
+  const statusNodes = nodes.filter(node => node.type === 'status');
+  const eventNodes = nodes.filter(node => node.type === 'event');
+
+  // Calculate horizontal spacing based on number of nodes
+  const maxNodes = Math.max(statusNodes.length, eventNodes.length);
   const availableWidth = workflowWidth - (2 * padding);
-  const totalStageWidth = stages.length * stageWidth;
-  const stageSpacing = stages.length > 1 ? (availableWidth - totalStageWidth) / (stages.length - 1) : 0;
+  const totalNodeWidth = maxNodes * stageWidth;
+  const nodeSpacing = maxNodes > 1 ? (availableWidth - totalNodeWidth) / (maxNodes - 1) : 0;
 
   // Calculate positions for each row
-  const stageY = 70;
-  const circleY = stageY + stageHeight + verticalSpacing;
-  const entitiesY = circleY + circleSize + verticalSpacing;
+  const statusY = 70;
+  const eventY = statusY + stageHeight + verticalSpacing;
 
   return {
-    stageSpacing: Math.max(stageSpacing, 20), // Minimum spacing
-    stageY,
-    circleY,
-    entitiesY,
-    getStagePosition: (index: number) => ({
-      x: padding + (index * (stageWidth + stageSpacing)),
-      y: stageY,
+    nodeSpacing: Math.max(nodeSpacing, 20), // Minimum spacing
+    statusY,
+    eventY,
+    getStatusPosition: (index: number) => ({
+      x: padding + (index * (stageWidth + nodeSpacing)),
+      y: statusY,
     }),
-    getCirclePosition: (index: number) => ({
-      x: padding + (index * (stageWidth + stageSpacing)) + (stageWidth / 2) - (circleSize / 2),
-      y: circleY,
-    }),
-    getEntitiesPosition: () => ({
-      x: padding,
-      y: entitiesY,
+    getEventPosition: (index: number) => ({
+      x: padding + (index * (stageWidth + nodeSpacing)),
+      y: eventY,
     }),
   };
 };
@@ -59,91 +58,63 @@ export const createDynamicNodes = (
   const nodes: Node[] = [];
   const layout = calculateDynamicLayout(workflowData, config);
 
-  // PMF Tag (outside workflow)
-  nodes.push({
-    id: 'pmf-tag',
-    type: 'pmf-tag',
-    position: { x: 20, y: 20 },
-    data: {
-      title: 'PMF',
-      type: 'pmf-tag',
-      onClick: () => console.log('PMF tag clicked'),
-    } as WorkflowNodeData,
-    draggable: true,
-  });
-
   // Main workflow container
   nodes.push({
-    id: workflowData.workflow.id,
+    id: workflowData.id,
     type: 'workflow',
     position: { x: 20, y: 60 },
     data: {
-      title: workflowData.workflow.title,
-      description: workflowData.workflow.description,
+      title: workflowData.name,
+      description: workflowData.description,
       type: 'workflow',
     } as WorkflowNodeData,
     style: { width: config.workflowWidth, height: config.workflowHeight },
     draggable: true,
   });
 
-  // Stage nodes - positioned dynamically
-  workflowData.stages.forEach((stage, index) => {
-    const position = layout.getStagePosition(index);
+  // Separate status and event nodes
+  const statusNodes = workflowData.nodes.filter(node => node.type === 'status');
+  const eventNodes = workflowData.nodes.filter(node => node.type === 'event');
+
+  // Status nodes (rectangular) - positioned dynamically  
+  statusNodes.forEach((status, index) => {
+    const position = layout.getStatusPosition(index);
     
     nodes.push({
-      id: stage.id,
+      id: status.id,
       type: 'stage',
       position,
       data: {
-        title: stage.title,
-        description: stage.description,
+        title: status.label,
+        description: `Status: ${status.label}`,
         type: 'stage',
-        color: stage.color,
-        onClick: () => console.log(`${stage.title} event clicked`),
+        color: 'blue',
+        onClick: () => console.log(`${status.label} status clicked`),
       } as WorkflowNodeData,
-      parentId: workflowData.workflow.id,
+      parentId: workflowData.id,
       extent: 'parent',
       style: { width: config.stageWidth, height: config.stageHeight },
       draggable: true,
     });
   });
 
-  // Status nodes (circular) - positioned dynamically
-  workflowData.statusNodes.forEach((status, index) => {
-    const position = layout.getCirclePosition(index);
+  // Event nodes (circular) - positioned dynamically
+  eventNodes.forEach((event, index) => {
+    const position = layout.getEventPosition(index);
     
     nodes.push({
-      id: status.id,
+      id: event.id,
       type: 'circular',
       position,
       data: {
-        label: status.label,
-        color: status.color,
-        onClick: () => console.log(`${status.label} status clicked`),
+        label: event.label,
+        color: 'green',
+        onClick: () => console.log(`${event.label} event clicked`),
       } as CircularNodeData,
-      parentId: workflowData.workflow.id,
+      parentId: workflowData.id,
       extent: 'parent',
       draggable: true,
     });
-  });
-
-  // Entities group node
-  const entitiesPosition = layout.getEntitiesPosition();
-  nodes.push({
-    id: 'entities-group',
-    type: 'entities-group',
-    position: entitiesPosition,
-    data: {
-      title: 'Data Entities',
-      type: 'entities-group',
-      entities: workflowData.entities,
-      entitiesExpanded,
-      onToggleEntities,
-      onClick: () => console.log('Entities group clicked'),
-    } as WorkflowNodeData,
-    parentId: workflowData.workflow.id,
-    extent: 'parent' as const,
-    draggable: true,
   });
 
   return nodes;

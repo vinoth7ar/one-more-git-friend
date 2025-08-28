@@ -1,33 +1,22 @@
-export interface WorkflowStage {
+export interface WorkflowNode {
   id: string;
-  title: string;
-  description: string;
-  color?: string;
-}
-
-export interface WorkflowStatusNode {
-  id: string;
+  type: 'status' | 'event';
   label: string;
-  color?: string;
-  connectedToStage?: string;
-  connectedToEntities?: string[];
 }
 
-export interface WorkflowEntity {
+export interface WorkflowEdge {
   id: string;
-  title: string;
-  color?: string;
+  source: string;
+  target: string;
+  label: string;
 }
 
 export interface WorkflowData {
-  workflow: {
-    id: string;
-    title: string;
-    description: string;
-  };
-  stages: WorkflowStage[];
-  statusNodes: WorkflowStatusNode[];
-  entities: WorkflowEntity[];
+  id: string;
+  name: string;
+  description: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
 }
 
 export interface LayoutConfig {
