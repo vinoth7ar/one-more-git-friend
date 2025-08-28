@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/card';
+// Using simple div elements instead of Card component
 
 interface WorkflowSidebarProps {
   selectedWorkflow: string;
@@ -21,16 +21,16 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
   return (
     <div className="w-80 bg-workflow-bg border-l border-workflow-border p-4 space-y-4">
       {/* Customize View */}
-      <Card className="p-4">
+      <div className="p-4 bg-card border border-border rounded-lg">
         <h3 className="text-sm font-medium mb-3">Customize View</h3>
         <label className="flex items-center gap-2 text-xs">
           <input type="checkbox" defaultChecked className="rounded" />
           Expand all data entities
         </label>
-      </Card>
+      </div>
 
       {/* Legend */}
-      <Card className="p-4">
+      <div className="p-4 bg-card border border-border rounded-lg">
         <h3 className="text-sm font-medium mb-3">Legend</h3>
         <div className="space-y-2">
           {legendItems.map((item, index) => (
@@ -40,10 +40,10 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
             </div>
           ))}
         </div>
-      </Card>
+      </div>
 
       {/* Other Workflows */}
-      <Card className="p-4">
+      <div className="p-4 bg-card border border-border rounded-lg">
         <h3 className="text-sm font-medium mb-3">Other Workflows</h3>
         <p className="text-xs text-muted-foreground mb-3">
           Choose a different workflow to visualize
@@ -63,7 +63,7 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
             </div>
           ))}
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

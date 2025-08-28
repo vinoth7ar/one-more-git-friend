@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Eye, Settings, ArrowRight } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,9 +22,7 @@ const Index = () => {
               onClick={() => navigate('/selection')}
               className="gap-2"
             >
-              <Eye className="h-5 w-5" />
-              Start Visualization
-              <ArrowRight className="h-4 w-4" />
+              👁️ Start Visualization →
             </Button>
             
             <Button 
@@ -34,8 +31,7 @@ const Index = () => {
               onClick={() => navigate('/selection')}
               className="gap-2"
             >
-              <Settings className="h-5 w-5" />
-              Configure & Select
+              ⚙️ Configure & Select
             </Button>
           </div>
 
