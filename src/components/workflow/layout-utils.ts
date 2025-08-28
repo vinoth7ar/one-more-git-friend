@@ -26,16 +26,16 @@ export const calculateDynamicLayout = (
 
   // Calculate dynamic workflow width based on number of nodes
   const maxNodes = Math.max(statusNodes.length, eventNodes.length);
-  const minSpacing = 20; // Minimum spacing between nodes
-  const dynamicWorkflowWidth = (2 * padding) + (maxNodes * stageWidth) + ((maxNodes - 1) * Math.max(minSpacing, 40));
+  const minSpacing = 60; // Increased minimum spacing between nodes
+  const dynamicWorkflowWidth = Math.max(600, (2 * padding) + (maxNodes * stageWidth) + ((maxNodes - 1) * minSpacing)); // Minimum width of 600px
   
   // Calculate dynamic workflow height based on content
-  const dynamicWorkflowHeight = (2 * padding) + stageHeight + verticalSpacing + circleSize + 40; // Extra padding
+  const dynamicWorkflowHeight = Math.max(350, (2 * padding) + stageHeight + verticalSpacing + circleSize + 60); // Minimum height of 350px
   
   // Calculate horizontal spacing based on number of nodes
   const availableWidth = dynamicWorkflowWidth - (2 * padding);
   const totalNodeWidth = maxNodes * stageWidth;
-  const nodeSpacing = maxNodes > 1 ? (availableWidth - totalNodeWidth) / (maxNodes - 1) : 0;
+  const nodeSpacing = maxNodes > 1 ? Math.max(minSpacing, (availableWidth - totalNodeWidth) / (maxNodes - 1)) : 0;
 
   // Calculate positions for each row
   const eventY = 70; // Events in first row
@@ -44,7 +44,7 @@ export const calculateDynamicLayout = (
   return {
     dynamicWorkflowWidth,
     dynamicWorkflowHeight,
-    nodeSpacing: Math.max(nodeSpacing, 20), // Minimum spacing
+    nodeSpacing: Math.max(nodeSpacing, 60), // Increased minimum spacing
     eventY,
     statusY,
     getEventPosition: (index: number) => ({
