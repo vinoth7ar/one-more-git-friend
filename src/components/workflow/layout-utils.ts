@@ -35,21 +35,21 @@ export const calculateDynamicLayout = (
   const nodeSpacing = maxNodes > 1 ? (availableWidth - totalNodeWidth) / (maxNodes - 1) : 0;
 
   // Calculate positions for each row
-  const statusY = 70;
-  const eventY = statusY + stageHeight + verticalSpacing;
+  const eventY = 70; // Events in first row
+  const statusY = eventY + stageHeight + verticalSpacing; // Status in second row
 
   return {
     dynamicWorkflowWidth,
     nodeSpacing: Math.max(nodeSpacing, 20), // Minimum spacing
-    statusY,
     eventY,
-    getStatusPosition: (index: number) => ({
-      x: padding + (index * (stageWidth + nodeSpacing)),
-      y: statusY,
-    }),
+    statusY,
     getEventPosition: (index: number) => ({
       x: padding + (index * (stageWidth + nodeSpacing)),
       y: eventY,
+    }),
+    getStatusPosition: (index: number) => ({
+      x: padding + (index * (stageWidth + nodeSpacing)) + (stageWidth / 2) - (circleSize / 2),
+      y: statusY,
     }),
   };
 };
@@ -81,20 +81,17 @@ export const createDynamicNodes = (
   const statusNodes = workflowData.nodes.filter(node => node.type === 'status');
   const eventNodes = workflowData.nodes.filter(node => node.type === 'event');
 
-  // Status nodes (rectangular) - positioned dynamically  
-  statusNodes.forEach((status, index) => {
-    const position = layout.getStatusPosition(index);
+  // Event nodes (rectangular, first row) - positioned dynamically  
+  eventNodes.forEach((event, index) => {
+    const position = layout.getEventPosition(index);
     
     nodes.push({
-      id: status.id,
-      type: 'stage',
+      id: event.id,
+      type: 'workflow',
       position,
       data: {
-        title: status.label,
-        description: `Status: ${status.label}`,
+        title: event.label,
         type: 'stage',
-        color: 'blue',
-        onClick: () => console.log(`${status.label} status clicked`),
       } as WorkflowNodeData,
       parentId: workflowData.id,
       extent: 'parent',
@@ -103,18 +100,16 @@ export const createDynamicNodes = (
     });
   });
 
-  // Event nodes (circular) - positioned dynamically
-  eventNodes.forEach((event, index) => {
-    const position = layout.getEventPosition(index);
+  // Status nodes (circular, second row) - positioned dynamically
+  statusNodes.forEach((status, index) => {
+    const position = layout.getStatusPosition(index);
     
     nodes.push({
-      id: event.id,
+      id: status.id,
       type: 'circular',
       position,
       data: {
-        label: event.label,
-        color: 'green',
-        onClick: () => console.log(`${event.label} event clicked`),
+        label: status.label,
       } as CircularNodeData,
       parentId: workflowData.id,
       extent: 'parent',

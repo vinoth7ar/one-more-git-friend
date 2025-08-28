@@ -137,14 +137,9 @@ const WorkflowNode = ({ data }: NodeProps) => {
 
   return (
     <div className={getNodeStyles()} onClick={handleClick}>
-      <div className="text-lg font-bold text-foreground mb-3">
+      <div className="text-lg font-bold text-foreground text-center">
         {nodeData.title}
       </div>
-      {nodeData.description && (
-        <div className="text-sm text-muted-foreground leading-relaxed">
-          {nodeData.description}
-        </div>
-      )}
       
       <Handle type="target" position={Position.Top} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
       <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
