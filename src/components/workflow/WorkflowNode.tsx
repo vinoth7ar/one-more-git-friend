@@ -39,6 +39,10 @@ const WorkflowNode = ({ data }: NodeProps) => {
     }
   };
 
+  const getWrapperStyles = () => {
+    return 'border-2 border-workflow-border rounded-lg p-2';
+  };
+
   const handleClick = () => {
     if (nodeData.onClick) {
       nodeData.onClick();
@@ -48,9 +52,11 @@ const WorkflowNode = ({ data }: NodeProps) => {
 
   if (nodeData.type === 'pmf-tag') {
     return (
-      <div className={getNodeStyles()} onClick={handleClick}>
-        <div className="font-bold">
-          {nodeData.title}
+      <div className={getWrapperStyles()}>
+        <div className={getNodeStyles()} onClick={handleClick}>
+          <div className="font-bold">
+            {nodeData.title}
+          </div>
         </div>
       </div>
     );
@@ -58,10 +64,12 @@ const WorkflowNode = ({ data }: NodeProps) => {
 
   if (nodeData.type === 'data') {
     return (
-      <div className={getNodeStyles()} onClick={handleClick}>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{nodeData.title}</span>
-          <span className="text-xs font-bold">⋮</span>
+      <div className={getWrapperStyles()}>
+        <div className={getNodeStyles()} onClick={handleClick}>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{nodeData.title}</span>
+            <span className="text-xs font-bold">⋮</span>
+          </div>
         </div>
       </div>
     );
@@ -76,72 +84,78 @@ const WorkflowNode = ({ data }: NodeProps) => {
     };
 
     return (
-      <div className={getNodeStyles()} onClick={handleClick}>
-        <div className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <span 
-            className="cursor-pointer select-none text-lg leading-none"
-            onClick={handleIconClick}
-          >
-            {nodeData.entitiesExpanded ? '▼' : '▲'}
-          </span>
-          <span>Modified Data Entities</span>
-        </div>
-        {nodeData.entitiesExpanded && (
-          <div className="flex flex-wrap gap-3">
-            {nodeData.entities?.map((entity) => {
-              const bgColor = entity.color === 'yellow' ? 'bg-workflow-data-bg' : 'bg-muted';
-              const borderColor = entity.color === 'yellow' ? 'border-workflow-data-border' : 'border-border';
-              return (
-                <div
-                  key={entity.id}
-                  className={`${bgColor} ${borderColor} border px-3 py-2 text-sm font-medium transform rotate-[-2deg] shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>{entity.title}</span>
-                    <span className="text-xs font-bold">⋮</span>
-                  </div>
-                </div>
-              );
-            })}
+      <div className={getWrapperStyles()}>
+        <div className={getNodeStyles()} onClick={handleClick}>
+          <div className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+            <span 
+              className="cursor-pointer select-none text-lg leading-none"
+              onClick={handleIconClick}
+            >
+              {nodeData.entitiesExpanded ? '▼' : '▲'}
+            </span>
+            <span>Modified Data Entities</span>
           </div>
-        )}
+          {nodeData.entitiesExpanded && (
+            <div className="flex flex-wrap gap-3">
+              {nodeData.entities?.map((entity) => {
+                const bgColor = entity.color === 'yellow' ? 'bg-workflow-data-bg' : 'bg-muted';
+                const borderColor = entity.color === 'yellow' ? 'border-workflow-data-border' : 'border-border';
+                return (
+                  <div
+                    key={entity.id}
+                    className={`${bgColor} ${borderColor} border px-3 py-2 text-sm font-medium transform rotate-[-2deg] shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>{entity.title}</span>
+                      <span className="text-xs font-bold">⋮</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   if (nodeData.type === 'workflow') {
     return (
-      <div className={getNodeStyles()}>        
-        <div className="text-2xl font-bold text-foreground mb-2">
-          {nodeData.title}
-        </div>
-        
-        {nodeData.description && (
-          <div className="text-base text-muted-foreground mb-8">
-            {nodeData.description}
+      <div className={getWrapperStyles()}>
+        <div className={getNodeStyles()}>        
+          <div className="text-2xl font-bold text-foreground mb-2">
+            {nodeData.title}
           </div>
-        )}
+          
+          {nodeData.description && (
+            <div className="text-base text-muted-foreground mb-8">
+              {nodeData.description}
+            </div>
+          )}
 
-        <div className="space-y-4">
-          {/* Stage and Enrich boxes will be positioned inside */}
+          <div className="space-y-4">
+            {/* Stage and Enrich boxes will be positioned inside */}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={getNodeStyles()} onClick={handleClick}>
-      <div className="text-lg font-bold text-foreground mb-3">
-        {nodeData.title}
-      </div>
-      {nodeData.description && (
-        <div className="text-sm text-muted-foreground leading-relaxed">
-          {nodeData.description}
+    <div className={getWrapperStyles()}>
+      <div className={getNodeStyles()} onClick={handleClick}>
+        <div className="text-lg font-bold text-foreground mb-3">
+          {nodeData.title}
         </div>
-      )}
-      
-      <Handle type="target" position={Position.Top} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
+        {nodeData.description && (
+          <div className="text-sm text-muted-foreground leading-relaxed">
+            {nodeData.description}
+          </div>
+        )}
+        
+        <Handle type="target" position={Position.Top} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
+        <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
+      </div>
     </div>
   );
 };
