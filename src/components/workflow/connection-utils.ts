@@ -16,8 +16,6 @@ export const generateIntelligentConnections = (workflowData: WorkflowData): Edge
         id: `event-to-status-${index}`,
         source: eventNode.id,
         target: statusNodes[index].id,
-        sourceHandle: 'bottom',
-        targetHandle: 'left',
         style: { stroke: '#666', strokeWidth: 2 },
         type: 'smoothstep',
       });
@@ -29,8 +27,6 @@ export const generateIntelligentConnections = (workflowData: WorkflowData): Edge
         id: `status-to-event-${index}`,
         source: statusNodes[index].id,
         target: eventNodes[index + 1].id,
-        sourceHandle: 'right',
-        targetHandle: 'top',
         style: { stroke: '#666', strokeWidth: 2 },
         type: 'smoothstep',
       });

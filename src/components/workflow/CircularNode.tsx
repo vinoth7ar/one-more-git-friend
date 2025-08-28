@@ -30,8 +30,8 @@ const CircularNode = ({ data }: NodeProps) => {
         {nodeData.label}
       </div>
       
-      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
-      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border opacity-0" />
+      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border" />
+      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border" />
     </div>
   );
 };
