@@ -20,7 +20,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={() => navigate('/selection')}
+              onClick={() => navigate('/single-view/workflow-1')}
               className="gap-2"
             >
               <Eye className="h-5 w-5" />
@@ -31,11 +31,11 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="lg"
-              onClick={() => navigate('/selection')}
+              onClick={() => navigate('/builder')}
               className="gap-2"
             >
               <Settings className="h-5 w-5" />
-              Configure & Select
+              Workflow Builder
             </Button>
           </div>
 
