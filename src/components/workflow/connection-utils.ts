@@ -10,11 +10,8 @@ export const generateIntelligentConnections = (workflowData: WorkflowData): Edge
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      label: edge.label,
       style: { stroke: '#666', strokeWidth: 2 },
       type: 'smoothstep',
-      labelStyle: { fontSize: '12px', fontWeight: 'bold' },
-      labelBgStyle: { fill: '#ffffff', fillOpacity: 0.8 },
     });
   });
 
