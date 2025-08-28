@@ -15,6 +15,7 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
 
   const workflows = [
     { id: 'ebm-version', name: 'EBM Version' },
+    { id: 'test-workflow', name: 'Test Workflow' },
   ];
 
   return (

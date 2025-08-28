@@ -126,6 +126,53 @@ export const mockWorkflows: Record<string, WorkflowData> = {
         label: "Canceled"
       }
     ]
+  },
+  'test-workflow': {
+    id: "test-workflow-id",
+    name: "Test Workflow",
+    description: "Simple test workflow with two nodes",
+    nodes: [
+      {
+        id: "test-event-1",
+        type: "event",
+        label: "Start"
+      },
+      {
+        id: "test-event-2",
+        type: "event",
+        label: "Finish"
+      },
+      {
+        id: "test-status-1",
+        type: "status",
+        label: "pending"
+      },
+      {
+        id: "test-status-2",
+        type: "status",
+        label: "completed"
+      }
+    ],
+    edges: [
+      {
+        id: "test-edge-1",
+        source: "test-event-1",
+        target: "test-status-1",
+        label: ""
+      },
+      {
+        id: "test-edge-2",
+        source: "test-status-1",
+        target: "test-event-2",
+        label: ""
+      },
+      {
+        id: "test-edge-3",
+        source: "test-event-2",
+        target: "test-status-2",
+        label: ""
+      }
+    ]
   }
 };
 
