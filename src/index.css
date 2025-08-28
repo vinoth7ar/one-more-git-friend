@@ -36,22 +36,22 @@ All colors MUST be HSL.
     --input: 210 14% 89%;
     --ring: 213 94% 68%;
 
-    /* Enterprise workflow colors - matching Figma design */
-    --workflow-bg: 220 20% 92%;
-    --workflow-canvas: 220 15% 96%;
-    --workflow-border: 213 94% 68%;
+    /* Professional workflow colors - matching clean design */
+    --workflow-bg: 210 20% 87%;
+    --workflow-canvas: 0 0% 95%;
+    --workflow-border: 0 0% 60%;
     --workflow-node-bg: 0 0% 100%;
-    --workflow-node-border: 213 94% 68%;
-    --workflow-main-bg: 220 15% 96%;
-    --workflow-main-border: 213 94% 68%;
-    --workflow-stage-bg: 220 15% 96%;
-    --workflow-stage-border: 0 0% 20%;
+    --workflow-node-border: 0 0% 80%;
+    --workflow-main-bg: 0 0% 95%;
+    --workflow-main-border: 0 0% 60%;
+    --workflow-stage-bg: 0 0% 100%;
+    --workflow-stage-border: 0 0% 60%;
     --workflow-data-bg: 45 100% 85%;
     --workflow-data-border: 45 93% 47%;
     --workflow-process-bg: 213 94% 68%;
     --workflow-process-text: 0 0% 100%;
     --workflow-circular: 0 0% 100%;
-    --workflow-circular-border: 0 0% 20%;
+    --workflow-circular-border: 0 0% 60%;
     --workflow-pmf-bg: 0 0% 20%;
     --workflow-pmf-text: 0 0% 100%;
 

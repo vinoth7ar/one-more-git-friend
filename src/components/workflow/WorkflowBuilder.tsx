@@ -101,7 +101,7 @@ const WorkflowBuilder = ({
   return (
     <div className="flex h-screen w-full bg-workflow-bg">
       {/* Main Canvas */}
-      <div className="flex-1 h-full p-2">
+      <div className="flex-1 h-full p-8">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -110,18 +110,18 @@ const WorkflowBuilder = ({
           onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
-          className="bg-workflow-canvas"
-          defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
+          className="bg-workflow-canvas rounded-lg"
+          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
           nodesDraggable={true}
           nodesConnectable={true}
           elementsSelectable={true}
         >
           <Background 
-            color="#d1d5db" 
-            gap={16}
-            size={1}
+            color="#999999" 
+            gap={20}
+            size={2}
           />
-          <Controls className="bg-white border border-gray-300 shadow-lg" />
+          <Controls className="bg-white border border-gray-300 shadow-lg rounded-lg" />
         </ReactFlow>
       </div>
 

@@ -18,7 +18,7 @@ const CircularNode = ({ data }: NodeProps) => {
   };
 
   const getCircleStyles = () => {
-    return 'w-16 h-16 rounded-full bg-workflow-circular border border-workflow-circular-border flex items-center justify-center shadow-md cursor-pointer hover:shadow-lg transition-all duration-200';
+    return 'w-20 h-20 rounded-full bg-workflow-circular border-2 border-workflow-circular-border flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200';
   };
 
   return (
@@ -26,7 +26,7 @@ const CircularNode = ({ data }: NodeProps) => {
       className={getCircleStyles()}
       onClick={handleClick}
     >
-      <div className="text-[10px] font-bold text-center text-foreground px-1 leading-tight">
+      <div className="text-xs font-bold text-center text-foreground px-2 leading-tight">
         {nodeData.label}
       </div>
       
