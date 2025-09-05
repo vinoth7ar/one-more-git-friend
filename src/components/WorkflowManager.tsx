@@ -918,20 +918,16 @@ export const WorkflowManager = () => {
               gap={20}
               size={1}
             />
-          </ReactFlow>
-        </div>
-        
-        {/* External React Flow Controls */}
-        <div className="flex justify-center mt-4">
-          <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2">
+            
+            {/* React Flow Controls - Must be inside ReactFlow component */}
             <Controls
-              position="bottom-center"
-              className="relative"
+              position="bottom-right"
+              className="bg-white border border-gray-300 rounded-lg shadow-lg"
               showZoom={true}
               showFitView={true}
               showInteractive={true}
             />
-          </div>
+          </ReactFlow>
         </div>
       </div>
     </div>
