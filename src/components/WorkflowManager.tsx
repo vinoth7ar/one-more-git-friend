@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, memo } from 'react';
+import { useCallback, useState, useEffect, memo, useMemo } from 'react';
 import {
   ReactFlow,
   addEdge,
@@ -752,23 +752,29 @@ const WorkflowManager = ({
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(externalWorkflowId || defaultWorkflow);
   const [entitiesExpanded, setEntitiesExpanded] = useState(false);
   
-  // Get current workflow data and process it to ensure correct format
-  const getRawWorkflowData = () => {
-    return externalWorkflowData || 
-           mockWorkflows[selectedWorkflowId] || 
-           mockWorkflows[defaultWorkflow];
-  };
+  // Memoize the processed workflow data to prevent infinite re-renders
+  const currentWorkflowData = useMemo(() => {
+    const rawData = externalWorkflowData || 
+                    mockWorkflows[selectedWorkflowId] || 
+                    mockWorkflows[defaultWorkflow];
+    
+    console.log('Processing workflow data once:', rawData);
+    return processWorkflowData(rawData);
+  }, [externalWorkflowData, selectedWorkflowId]);
   
-  const currentWorkflowData = processWorkflowData(getRawWorkflowData());
+  // Memoize initial nodes and edges
+  const initialNodes = useMemo(() => {
+    return createDynamicNodes(
+      currentWorkflowData, 
+      entitiesExpanded, 
+      () => setEntitiesExpanded(!entitiesExpanded),
+      layoutConfig
+    );
+  }, [currentWorkflowData, entitiesExpanded, layoutConfig]);
   
-  // Create initial nodes and edges
-  const initialNodes = createDynamicNodes(
-    currentWorkflowData, 
-    entitiesExpanded, 
-    () => setEntitiesExpanded(!entitiesExpanded),
-    layoutConfig
-  );
-  const initialEdges = updateConnectionsForWorkflow(currentWorkflowData);
+  const initialEdges = useMemo(() => {
+    return updateConnectionsForWorkflow(currentWorkflowData);
+  }, [currentWorkflowData]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
