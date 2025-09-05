@@ -219,97 +219,214 @@ export const mockWorkflows: Record<string, WorkflowData> = {
 
 export const defaultWorkflow = 'ebm-version';
 
-// ============= LAYOUT UTILITIES (from layout-utils.ts) =============
+// ============= ADVANCED LAYOUT UTILITIES =============
 export const defaultLayoutConfig: LayoutConfig = {
-  workflowWidth: 800,
-  workflowHeight: 450,
-  stageWidth: 220,
-  stageHeight: 90,
-  circleSize: 64,
-  padding: 30,
-  verticalSpacing: 40,
+  workflowWidth: 1200,
+  workflowHeight: 800,
+  stageWidth: 200,
+  stageHeight: 100,
+  circleSize: 80,
+  padding: 50,
+  verticalSpacing: 150,
 };
 
-export const calculateDynamicLayout = (
-  workflowData: WorkflowData,
-  config: LayoutConfig = defaultLayoutConfig
-) => {
-  const { nodes } = workflowData;
-  const { stageWidth, padding, verticalSpacing, stageHeight, circleSize } = config;
-
-  const statusNodes = nodes.filter(node => node.type === 'status');
-  const eventNodes = nodes.filter(node => node.type === 'event');
-
-  const maxNodes = Math.max(statusNodes.length, eventNodes.length);
-  const minSpacing = 60;
-  const dynamicWorkflowWidth = Math.max(600, (2 * padding) + (maxNodes * stageWidth) + ((maxNodes - 1) * minSpacing));
-  const dynamicWorkflowHeight = Math.max(350, (2 * padding) + stageHeight + verticalSpacing + circleSize + 60);
+// Graph analysis utilities
+export const analyzeGraphStructure = (workflowData: WorkflowData) => {
+  const { nodes, edges } = workflowData;
   
-  const availableWidth = dynamicWorkflowWidth - (2 * padding);
-  const totalNodeWidth = maxNodes * stageWidth;
-  const nodeSpacing = maxNodes > 1 ? Math.max(minSpacing, (availableWidth - totalNodeWidth) / (maxNodes - 1)) : 0;
-
-  const eventY = 70;
-  const statusY = eventY + stageHeight + verticalSpacing;
-
+  // Create adjacency maps
+  const outgoing = new Map<string, string[]>();
+  const incoming = new Map<string, string[]>();
+  
+  // Initialize maps
+  nodes.forEach(node => {
+    outgoing.set(node.id, []);
+    incoming.set(node.id, []);
+  });
+  
+  // Build adjacency lists
+  edges.forEach(edge => {
+    if (outgoing.has(edge.source) && incoming.has(edge.target)) {
+      outgoing.get(edge.source)!.push(edge.target);
+      incoming.get(edge.target)!.push(edge.source);
+    }
+  });
+  
+  // Find root nodes (no incoming edges)
+  const rootNodes = nodes.filter(node => 
+    incoming.get(node.id)?.length === 0
+  );
+  
+  // Find leaf nodes (no outgoing edges)
+  const leafNodes = nodes.filter(node => 
+    outgoing.get(node.id)?.length === 0
+  );
+  
+  // If no clear root, find nodes with most outgoing connections
+  const startNodes = rootNodes.length > 0 ? rootNodes : 
+    nodes.sort((a, b) => 
+      (outgoing.get(b.id)?.length || 0) - (outgoing.get(a.id)?.length || 0)
+    ).slice(0, 1);
+  
   return {
-    dynamicWorkflowWidth,
-    dynamicWorkflowHeight,
-    nodeSpacing: Math.max(nodeSpacing, 60),
-    eventY,
-    statusY,
-    getEventPosition: (index: number) => ({
-      x: padding + (index * (stageWidth + nodeSpacing)),
-      y: eventY,
-    }),
-    getStatusPosition: (index: number) => ({
-      x: padding + (index * (stageWidth + nodeSpacing)) + (stageWidth / 2) - (circleSize / 2),
-      y: statusY,
-    }),
+    nodes,
+    edges,
+    outgoing,
+    incoming,
+    rootNodes,
+    leafNodes,
+    startNodes,
+    nodeCount: nodes.length,
+    edgeCount: edges.length
   };
 };
 
-// ============= CONNECTION UTILITIES (from connection-utils.ts) =============
-export const generateIntelligentConnections = (workflowData: WorkflowData): Edge[] => {
-  const edges: Edge[] = [];
+// Hierarchical layout algorithm
+export const calculateHierarchicalLayout = (
+  workflowData: WorkflowData,
+  config: LayoutConfig = defaultLayoutConfig
+) => {
+  const analysis = analyzeGraphStructure(workflowData);
+  const { nodes, outgoing, startNodes } = analysis;
+  const { padding, stageWidth, stageHeight, circleSize } = config;
   
-  const eventNodes = workflowData.nodes.filter(node => node.type === 'event');
-  const statusNodes = workflowData.nodes.filter(node => node.type === 'status');
-
-  eventNodes.forEach((eventNode, index) => {
-    if (statusNodes[index]) {
-      edges.push({
-        id: `event-to-status-${index}`,
-        source: eventNode.id,
-        target: statusNodes[index].id,
-        style: { stroke: '#666', strokeWidth: 2 },
-        type: 'smoothstep',
-      });
-    }
+  // Calculate levels using BFS
+  const levels = new Map<string, number>();
+  const positions = new Map<string, { x: number; y: number; level: number }>();
+  const visited = new Set<string>();
+  
+  // Start BFS from identified start nodes
+  const queue: Array<{ nodeId: string; level: number }> = [];
+  
+  startNodes.forEach(node => {
+    queue.push({ nodeId: node.id, level: 0 });
+    levels.set(node.id, 0);
+  });
+  
+  // BFS to assign levels
+  while (queue.length > 0) {
+    const { nodeId, level } = queue.shift()!;
     
-    if (statusNodes[index] && eventNodes[index + 1]) {
-      edges.push({
-        id: `status-to-event-${index}`,
-        source: statusNodes[index].id,
-        target: eventNodes[index + 1].id,
-        style: { stroke: '#666', strokeWidth: 2 },
-        type: 'smoothstep',
-      });
+    if (visited.has(nodeId)) continue;
+    visited.add(nodeId);
+    
+    const children = outgoing.get(nodeId) || [];
+    children.forEach(childId => {
+      if (!visited.has(childId)) {
+        const newLevel = level + 1;
+        if (!levels.has(childId) || levels.get(childId)! > newLevel) {
+          levels.set(childId, newLevel);
+          queue.push({ nodeId: childId, level: newLevel });
+        }
+      }
+    });
+  }
+  
+  // Handle orphaned nodes
+  nodes.forEach(node => {
+    if (!levels.has(node.id)) {
+      levels.set(node.id, 0);
     }
   });
-
-  return edges;
+  
+  // Group nodes by level
+  const levelGroups = new Map<number, string[]>();
+  levels.forEach((level, nodeId) => {
+    if (!levelGroups.has(level)) {
+      levelGroups.set(level, []);
+    }
+    levelGroups.get(level)!.push(nodeId);
+  });
+  
+  const maxLevel = Math.max(...Array.from(levels.values()));
+  const levelCount = maxLevel + 1;
+  
+  // Calculate positions
+  let maxWidth = 0;
+  const levelPositions = new Map<number, number>();
+  
+  // Calculate level positions and widths
+  for (let level = 0; level <= maxLevel; level++) {
+    const nodesInLevel = levelGroups.get(level) || [];
+    const levelWidth = nodesInLevel.length * (stageWidth + 100) - 100;
+    maxWidth = Math.max(maxWidth, levelWidth);
+    
+    const y = padding + level * (stageHeight + config.verticalSpacing);
+    levelPositions.set(level, y);
+    
+    // Position nodes in this level
+    nodesInLevel.forEach((nodeId, index) => {
+      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * 100;
+      const startX = padding + (maxWidth - totalWidth) / 2;
+      const x = startX + index * (stageWidth + 100);
+      
+      positions.set(nodeId, { x, y, level });
+    });
+  }
+  
+  // Calculate final canvas dimensions
+  const canvasWidth = Math.max(maxWidth + 2 * padding, 800);
+  const canvasHeight = levelCount * (stageHeight + config.verticalSpacing) + padding;
+  
+  return {
+    positions,
+    levels,
+    levelGroups,
+    canvasWidth,
+    canvasHeight,
+    maxLevel,
+    analysis
+  };
 };
 
-export const updateConnectionsForWorkflow = (
+// Smart edge routing to avoid overlaps
+export const generateSmartEdges = (
   workflowData: WorkflowData,
-  existingEdges: Edge[] = []
+  layout: ReturnType<typeof calculateHierarchicalLayout>
 ): Edge[] => {
-  const newConnections = generateIntelligentConnections(workflowData);
-  const customEdges = existingEdges.filter(edge => 
-    !newConnections.some(newEdge => newEdge.id === edge.id)
-  );
-  return [...newConnections, ...customEdges];
+  const { positions } = layout;
+  
+  return workflowData.edges.map((edge, index) => {
+    const sourcePos = positions.get(edge.source);
+    const targetPos = positions.get(edge.target);
+    
+    if (!sourcePos || !targetPos) {
+      console.warn(`Edge ${edge.id} references non-existent nodes`);
+      return null;
+    }
+    
+    // Determine edge type based on layout
+    let edgeType = 'smoothstep';
+    let animated = false;
+    
+    // If nodes are on different levels, use different edge styling
+    if (Math.abs(sourcePos.level - targetPos.level) > 1) {
+      edgeType = 'smoothstep';
+      animated = true;
+    }
+    
+    return {
+      id: edge.id || `edge-${index}`,
+      source: edge.source,
+      target: edge.target,
+      type: edgeType,
+      animated,
+      label: edge.label,
+      style: {
+        stroke: '#666',
+        strokeWidth: 2,
+      },
+      labelStyle: {
+        fill: '#666',
+        fontWeight: 600,
+        fontSize: 12,
+      },
+      labelBgStyle: {
+        fill: 'white',
+        fillOpacity: 0.8,
+      },
+    };
+  }).filter(Boolean) as Edge[];
 };
 
 // ============= NODE COMPONENTS =============
@@ -601,68 +718,56 @@ const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebar
 };
 
 // ============= NODE CREATION UTILITIES =============
-export const createDynamicNodes = (
+export const createAdvancedNodes = (
   workflowData: WorkflowData,
-  entitiesExpanded: boolean,
-  onToggleEntities: () => void,
   config: LayoutConfig = defaultLayoutConfig
 ): Node[] => {
+  console.log('Creating nodes with hierarchical layout for:', workflowData);
+  
+  const layout = calculateHierarchicalLayout(workflowData, config);
+  const { positions, canvasWidth, canvasHeight, analysis } = layout;
+  
   const nodes: Node[] = [];
-  const layout = calculateDynamicLayout(workflowData, config);
 
-  // Main workflow container
-  nodes.push({
-    id: workflowData.id,
-    type: 'workflow',
-    position: { x: 20, y: 60 },
-    data: {
-      title: workflowData.name,
-      description: workflowData.description,
-      type: 'workflow',
-    } as WorkflowNodeData,
-    style: { width: layout.dynamicWorkflowWidth, height: layout.dynamicWorkflowHeight },
-    draggable: true,
-  });
-
-  const statusNodes = workflowData.nodes.filter(node => node.type === 'status');
-  const eventNodes = workflowData.nodes.filter(node => node.type === 'event');
-
-  // Event nodes (rectangular, first row)
-  eventNodes.forEach((event, index) => {
-    const position = layout.getEventPosition(index);
+  // Create nodes based on hierarchical layout positions
+  workflowData.nodes.forEach((workflowNode) => {
+    const position = positions.get(workflowNode.id);
     
+    if (!position) {
+      console.warn(`No position found for node ${workflowNode.id}`);
+      return;
+    }
+
+    // Determine node style based on type
+    const nodeStyle = workflowNode.type === 'status' ? 
+      { 
+        width: config.circleSize, 
+        height: config.circleSize,
+        borderRadius: '50%'
+      } : 
+      { 
+        width: config.stageWidth, 
+        height: config.stageHeight 
+      };
+
     nodes.push({
-      id: event.id,
-      type: 'workflow',
-      position,
-      data: {
-        title: event.label,
-        type: 'stage',
-      } as WorkflowNodeData,
-      parentId: workflowData.id,
-      extent: 'parent',
-      style: { width: config.stageWidth, height: config.stageHeight },
+      id: workflowNode.id,
+      type: workflowNode.type === 'status' ? 'circular' : 'workflow',
+      position: { x: position.x, y: position.y },
+      data: workflowNode.type === 'status' ? 
+        {
+          label: workflowNode.label,
+        } as CircularNodeData :
+        {
+          title: workflowNode.label,
+          type: 'stage',
+        } as WorkflowNodeData,
+      style: nodeStyle,
       draggable: true,
     });
   });
 
-  // Status nodes (circular, second row)
-  statusNodes.forEach((status, index) => {
-    const position = layout.getStatusPosition(index);
-    
-    nodes.push({
-      id: status.id,
-      type: 'circular',
-      position,
-      data: {
-        label: status.label,
-      } as CircularNodeData,
-      parentId: workflowData.id,
-      extent: 'parent',
-      draggable: true,
-    });
-  });
-
+  console.log(`Created ${nodes.length} nodes with positions:`, nodes.map(n => ({ id: n.id, pos: n.position })));
   return nodes;
 };
 
@@ -762,19 +867,15 @@ const WorkflowManager = ({
     return processWorkflowData(rawData);
   }, [externalWorkflowData, selectedWorkflowId]);
   
-  // Memoize initial nodes and edges
+  // Memoize initial nodes and edges using new hierarchical layout
   const initialNodes = useMemo(() => {
-    return createDynamicNodes(
-      currentWorkflowData, 
-      entitiesExpanded, 
-      () => setEntitiesExpanded(!entitiesExpanded),
-      layoutConfig
-    );
-  }, [currentWorkflowData, entitiesExpanded, layoutConfig]);
+    return createAdvancedNodes(currentWorkflowData, layoutConfig);
+  }, [currentWorkflowData, layoutConfig]);
   
   const initialEdges = useMemo(() => {
-    return updateConnectionsForWorkflow(currentWorkflowData);
-  }, [currentWorkflowData]);
+    const layout = calculateHierarchicalLayout(currentWorkflowData, layoutConfig);
+    return generateSmartEdges(currentWorkflowData, layout);
+  }, [currentWorkflowData, layoutConfig]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -796,22 +897,19 @@ const WorkflowManager = ({
     }
   };
 
-  // Update nodes when entities expansion state changes or workflow changes
+  // Update nodes when workflow data changes
   useEffect(() => {
-    const updatedNodes = createDynamicNodes(
-      currentWorkflowData,
-      entitiesExpanded,
-      () => setEntitiesExpanded(!entitiesExpanded),
-      layoutConfig
-    );
+    const layout = calculateHierarchicalLayout(currentWorkflowData, layoutConfig);
+    const updatedNodes = createAdvancedNodes(currentWorkflowData, layoutConfig);
     setNodes(updatedNodes);
-  }, [entitiesExpanded, currentWorkflowData, layoutConfig, setNodes]);
+  }, [currentWorkflowData, layoutConfig, setNodes]);
 
-  // Update connections when workflow data changes
+  // Update edges when workflow data changes
   useEffect(() => {
-    const updatedEdges = updateConnectionsForWorkflow(currentWorkflowData);
+    const layout = calculateHierarchicalLayout(currentWorkflowData, layoutConfig);
+    const updatedEdges = generateSmartEdges(currentWorkflowData, layout);
     setEdges(updatedEdges);
-  }, [currentWorkflowData, setEdges]);
+  }, [currentWorkflowData, layoutConfig, setEdges]);
 
   // Load data from API endpoint if provided
   useEffect(() => {
