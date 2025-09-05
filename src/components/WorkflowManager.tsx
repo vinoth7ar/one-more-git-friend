@@ -39,6 +39,124 @@ export interface WorkflowData {
   edges: WorkflowEdge[];
 }
 
+// ============= DATA TRANSFORMATION UTILITIES =============
+export interface RawWorkflowData {
+  [key: string]: any;
+}
+
+// Flexible data transformer that can handle various backend response formats
+export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData => {
+  console.log('Transforming raw data:', rawData);
+  
+  // Try to extract workflow data from various possible structures
+  const workflowData = rawData.workflow || rawData.data || rawData;
+  
+  // Extract basic properties with fallbacks
+  const id = workflowData.id || 
+             workflowData.workflowId || 
+             workflowData.workflow_id || 
+             workflowData.uuid || 
+             `workflow-${Date.now()}`;
+             
+  const name = workflowData.name || 
+               workflowData.title || 
+               workflowData.workflow_name || 
+               workflowData.workflowName || 
+               'Unnamed Workflow';
+               
+  const description = workflowData.description || 
+                      workflowData.desc || 
+                      workflowData.summary || 
+                      'No description available';
+
+  // Transform nodes from various possible formats
+  const transformNodes = (rawNodes: any[]): WorkflowNode[] => {
+    if (!Array.isArray(rawNodes)) return [];
+    
+    return rawNodes.map((node, index) => ({
+      id: node.id || node.nodeId || node.node_id || `node-${index}`,
+      type: (node.type?.toLowerCase() === 'status' || 
+             node.nodeType?.toLowerCase() === 'status' || 
+             node.node_type?.toLowerCase() === 'status') ? 'status' : 'event',
+      label: node.label || node.name || node.title || node.text || `Node ${index + 1}`
+    }));
+  };
+
+  // Transform edges from various possible formats
+  const transformEdges = (rawEdges: any[]): WorkflowEdge[] => {
+    if (!Array.isArray(rawEdges)) return [];
+    
+    return rawEdges.map((edge, index) => ({
+      id: edge.id || edge.edgeId || edge.edge_id || `edge-${index}`,
+      source: edge.source || edge.from || edge.sourceId || edge.source_id || '',
+      target: edge.target || edge.to || edge.targetId || edge.target_id || '',
+      label: edge.label || edge.name || edge.title || edge.text || ''
+    }));
+  };
+
+  // Extract nodes and edges with various fallback strategies
+  let nodes: WorkflowNode[] = [];
+  let edges: WorkflowEdge[] = [];
+
+  // Try to find nodes in various possible locations
+  if (workflowData.nodes) {
+    nodes = transformNodes(workflowData.nodes);
+  } else if (workflowData.vertices) {
+    nodes = transformNodes(workflowData.vertices);
+  } else if (workflowData.states) {
+    nodes = transformNodes(workflowData.states);
+  } else if (workflowData.steps) {
+    nodes = transformNodes(workflowData.steps);
+  }
+
+  // Try to find edges in various possible locations
+  if (workflowData.edges) {
+    edges = transformEdges(workflowData.edges);
+  } else if (workflowData.connections) {
+    edges = transformEdges(workflowData.connections);
+  } else if (workflowData.transitions) {
+    edges = transformEdges(workflowData.transitions);
+  } else if (workflowData.links) {
+    edges = transformEdges(workflowData.links);
+  }
+
+  console.log('Transformed workflow data:', { id, name, description, nodes, edges });
+
+  return {
+    id,
+    name,
+    description,
+    nodes,
+    edges
+  };
+};
+
+// Validate transformed data and provide defaults if needed
+export const validateWorkflowData = (data: WorkflowData): WorkflowData => {
+  const validatedData = { ...data };
+  
+  // Ensure we have at least some nodes
+  if (!validatedData.nodes || validatedData.nodes.length === 0) {
+    validatedData.nodes = [
+      { id: 'default-start', type: 'status', label: 'Start' },
+      { id: 'default-end', type: 'status', label: 'End' }
+    ];
+  }
+  
+  // Ensure we have valid edges
+  if (!validatedData.edges) {
+    validatedData.edges = [];
+  }
+  
+  // Remove any edges that reference non-existent nodes
+  const nodeIds = new Set(validatedData.nodes.map(node => node.id));
+  validatedData.edges = validatedData.edges.filter(edge => 
+    nodeIds.has(edge.source) && nodeIds.has(edge.target)
+  );
+  
+  return validatedData;
+};
+
 export interface LayoutConfig {
   workflowWidth: number;
   workflowHeight: number;
@@ -552,9 +670,67 @@ export const createDynamicNodes = (
 interface WorkflowManagerProps {
   layoutConfig?: typeof defaultLayoutConfig;
   selectedWorkflowId?: string;
-  workflowData?: WorkflowData;
+  workflowData?: WorkflowData | RawWorkflowData;
   onWorkflowSelect?: (workflowId: string) => void;
+  onDataLoad?: (data: RawWorkflowData) => void;
+  apiEndpoint?: string;
 }
+
+// Data loading utilities
+export const loadWorkflowFromAPI = async (endpoint: string): Promise<WorkflowData> => {
+  try {
+    console.log('Loading workflow from API:', endpoint);
+    const response = await fetch(endpoint);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const rawData = await response.json();
+    console.log('Raw API response:', rawData);
+    
+    const transformedData = transformWorkflowData(rawData);
+    const validatedData = validateWorkflowData(transformedData);
+    
+    console.log('Final processed workflow data:', validatedData);
+    return validatedData;
+    
+  } catch (error) {
+    console.error('Error loading workflow from API:', error);
+    
+    // Return a default workflow if API fails
+    return validateWorkflowData({
+      id: 'api-error-fallback',
+      name: 'API Error - Fallback Workflow',
+      description: 'Failed to load workflow from API, showing fallback',
+      nodes: [
+        { id: 'error-start', type: 'status', label: 'Error' },
+        { id: 'error-retry', type: 'event', label: 'Retry' }
+      ],
+      edges: [
+        { id: 'error-edge', source: 'error-start', target: 'error-retry', label: 'Retry Loading' }
+      ]
+    });
+  }
+};
+
+export const processWorkflowData = (inputData: WorkflowData | RawWorkflowData): WorkflowData => {
+  // Check if data is already in the correct format
+  if (inputData && 
+      typeof inputData === 'object' && 
+      'nodes' in inputData && 
+      'edges' in inputData &&
+      Array.isArray(inputData.nodes) &&
+      Array.isArray(inputData.edges)) {
+    console.log('Data appears to be in correct format, validating...');
+    return validateWorkflowData(inputData as WorkflowData);
+  }
+  
+  // Transform and validate the data
+  console.log('Data needs transformation, processing...');
+  const transformedData = transformWorkflowData(inputData as RawWorkflowData);
+  return validateWorkflowData(transformedData);
+};
 
 const nodeTypes = {
   workflow: memo(WorkflowNode),
@@ -569,15 +745,21 @@ const WorkflowManager = ({
   layoutConfig = defaultLayoutConfig,
   selectedWorkflowId: externalWorkflowId,
   workflowData: externalWorkflowData,
-  onWorkflowSelect: externalOnWorkflowSelect
+  onWorkflowSelect: externalOnWorkflowSelect,
+  apiEndpoint,
+  onDataLoad
 }: WorkflowManagerProps = {}) => {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(externalWorkflowId || defaultWorkflow);
   const [entitiesExpanded, setEntitiesExpanded] = useState(false);
   
-  // Get current workflow data
-  const currentWorkflowData = externalWorkflowData || 
-                              mockWorkflows[selectedWorkflowId] || 
-                              mockWorkflows[defaultWorkflow];
+  // Get current workflow data and process it to ensure correct format
+  const getRawWorkflowData = () => {
+    return externalWorkflowData || 
+           mockWorkflows[selectedWorkflowId] || 
+           mockWorkflows[defaultWorkflow];
+  };
+  
+  const currentWorkflowData = processWorkflowData(getRawWorkflowData());
   
   // Create initial nodes and edges
   const initialNodes = createDynamicNodes(
@@ -625,6 +807,25 @@ const WorkflowManager = ({
     setEdges(updatedEdges);
   }, [currentWorkflowData, setEdges]);
 
+  // Load data from API endpoint if provided
+  useEffect(() => {
+    if (apiEndpoint && !externalWorkflowData) {
+      const loadData = async () => {
+        try {
+          const data = await loadWorkflowFromAPI(apiEndpoint);
+          if (onDataLoad) {
+            onDataLoad(data);
+          }
+          console.log('Loaded workflow from API:', data);
+        } catch (error) {
+          console.error('Failed to load workflow from API:', error);
+        }
+      };
+      
+      loadData();
+    }
+  }, [apiEndpoint, externalWorkflowData, onDataLoad]);
+
   return (
     <div className="h-screen w-full">
       <WorkflowHeader />
@@ -666,3 +867,61 @@ const WorkflowManager = ({
 };
 
 export default WorkflowManager;
+
+// ============= USAGE EXAMPLES =============
+/*
+// Example 1: Using with API endpoint
+<WorkflowManager 
+  apiEndpoint="/api/workflows/123"
+  onDataLoad={(data) => console.log('Loaded:', data)}
+/>
+
+// Example 2: Using with external data (backend format like your images)
+const backendData = {
+  id: "4bde0616-c450-42b2-9fab-8af9bcc66dfa",
+  name: "App Version",
+  description: "workflow definition for onboarding a version of an application into EBM",
+  edges: [
+    {id: "e1", source: "s1", target: "ev1", label: "Initial load"},
+    {id: "e2", source: "ev1", target: "s2", label: "Loaded"},
+    // ... more edges as shown in your images
+  ],
+  nodes: [
+    {id: "s1", type: "status", label: "Start"},
+    {id: "s2", type: "status", label: "Loaded"},
+    {id: "ev1", type: "event", label: "Load"},
+    // ... more nodes
+  ]
+};
+
+<WorkflowManager workflowData={backendData} />
+
+// Example 3: Using with alternative data format
+const alternativeFormat = {
+  workflow: {
+    workflow_id: "xyz-123",
+    title: "My Workflow",
+    summary: "A test workflow",
+    states: [
+      {node_id: "start", nodeType: "status", name: "Beginning"},
+      {node_id: "process", nodeType: "event", name: "Processing"}
+    ],
+    transitions: [
+      {edge_id: "t1", from: "start", to: "process", text: "Begin Process"}
+    ]
+  }
+};
+
+<WorkflowManager workflowData={alternativeFormat} />
+
+// Example 4: Handle data transformation manually
+const handleDataLoad = (rawData) => {
+  const processedData = processWorkflowData(rawData);
+  console.log('Processed workflow:', processedData);
+};
+
+<WorkflowManager 
+  onDataLoad={handleDataLoad}
+  apiEndpoint="/api/workflows/current"
+/>
+*/
