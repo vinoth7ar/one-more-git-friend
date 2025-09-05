@@ -491,603 +491,394 @@ export const generateSmartEdges = (
     console.log(`✅ Processing edge ${edge.id}: ${edge.source} → ${edge.target} (levels: ${sourceLevel} → ${targetLevel})`);
     
     // Determine connection points based on layout orientation and flow direction
-    let sourceHandle: string | undefined;
-    let targetHandle: string | undefined;
+    let sourceHandle, targetHandle;
     
     if (isHorizontal) {
-      // Horizontal layout: standard left-to-right, bottom connections for backward flows
       if (isBackwardFlow) {
+        // Backward flow: use bottom connections to avoid visual conflicts
         sourceHandle = 'bottom-source';
         targetHandle = 'bottom-target';
       } else {
+        // Normal forward flow: left-to-right
         sourceHandle = 'right-source';
         targetHandle = 'left-target';
       }
     } else {
-      // Vertical layout: standard top-to-bottom, right connections for backward flows
       if (isBackwardFlow) {
+        // Backward flow in vertical layout: use right connections
         sourceHandle = 'right-source';
         targetHandle = 'right-target';
       } else {
+        // Normal vertical flow: top-to-bottom
         sourceHandle = 'bottom-source';
         targetHandle = 'top-target';
       }
     }
     
-    // Professional styling inspired by Figma design systems
-    const edgeStyle = {
-      stroke: isBackwardFlow ? '#94a3b8' : '#475569', // Subtle gray colors
-      strokeWidth: 2,
-      strokeDasharray: isBackwardFlow ? '6,6' : undefined, // Dashed lines for backward flow
-    };
-    
-    const generatedEdge: Edge = {
-      id: edge.id || `edge-${index}`,
+    return {
+      id: edge.id,
       source: edge.source,
       target: edge.target,
       sourceHandle,
       targetHandle,
-      type: 'smoothstep',  // Smooth curved connections
-      animated: false,     // Static lines for professional appearance
-      style: edgeStyle,
+      label: edge.label,
+      style: {
+        stroke: '#94a3b8',
+        strokeWidth: 2,
+        // Add subtle animation for backward flows to highlight them
+        ...(isBackwardFlow && {
+          strokeDasharray: '5,5',
+          animation: 'dash 1s linear infinite',
+        }),
+      },
       markerEnd: {
         type: 'arrowclosed',
-        color: isBackwardFlow ? '#94a3b8' : '#475569',
         width: 20,
         height: 20,
+        color: '#94a3b8',
       },
-      zIndex: 1,
+      type: isBackwardFlow ? 'smoothstep' : 'default',
     };
-    
-    return generatedEdge;
   }).filter(Boolean) as Edge[];
   
-  console.log('🎯 Successfully generated', generatedEdges.length, 'edges');
+  console.log('✅ Generated edges:', generatedEdges.length);
   return generatedEdges;
 };
 
 /**
- * ============= REACT FLOW NODE COMPONENTS =============
- * Custom node components for different workflow element types
+ * Converts workflow data into positioned React Flow nodes
+ * This bridges our data format with React Flow's expected format
  */
-
-// Data interface for rectangular workflow nodes
-export interface WorkflowNodeData extends Record<string, unknown> {
-  title: string;
-  description?: string;
-  type: 'workflow' | 'stage' | 'data' | 'process' | 'pmf-tag' | 'entities-group';
-  items?: string[];
-  entities?: Array<{ id: string; title: string; color?: string }>;
-  onClick?: () => void;
-  entitiesExpanded?: boolean;
-  onToggleEntities?: () => void;
-  isSelected?: boolean;
-  color?: string;
-}
-
-/**
- * WorkflowNode Component - Rectangular nodes for events/processes
- * Styled to match Figma design with context-appropriate colors
- */
-const WorkflowNode = ({ data }: NodeProps) => {
-  const nodeData = data as WorkflowNodeData;
-  
-  // Dynamic styling based on node type and context
-  const getNodeStyles = () => {
-    switch (nodeData.type) {
-      case 'stage':
-        return 'bg-slate-100 border-2 border-slate-300 rounded-lg p-4 min-w-[180px] min-h-[100px] cursor-pointer hover:shadow-md transition-all duration-200 shadow-sm';
-      case 'data':
-        // Amber nodes for data collection/input steps (inspired by Figma "Accept Price" nodes)
-        return 'bg-amber-200 border-2 border-amber-400 rounded-lg p-3 min-w-[140px] min-h-[80px] cursor-pointer hover:shadow-md transition-all duration-200 shadow-sm';
-      case 'process':
-        // Gray nodes for processing/decision steps
-        return 'bg-gray-200 border-2 border-gray-400 rounded-lg p-4 min-w-[200px] min-h-[120px] cursor-pointer hover:shadow-md transition-all duration-200 shadow-sm';
-      default:
-        return 'bg-white border-2 border-gray-300 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow min-w-[160px] min-h-[80px] shadow-sm';
-    }
-  };
-
-  const handleClick = () => {
-    if (nodeData.onClick) {
-      nodeData.onClick();
-    }
-    console.log(`🖱️ Clicked ${nodeData.type} node:`, nodeData.title);
-  };
-
-  return (
-    <div className={getNodeStyles()} onClick={handleClick}>
-      {/* Connection handles for all possible orientations and flow directions */}
-      <Handle
-        id="left-target"
-        type="target"
-        position={Position.Left}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="top-target"
-        type="target"
-        position={Position.Top}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="right-source"
-        type="source"
-        position={Position.Right}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="right-target"
-        type="target"
-        position={Position.Right}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="bottom-source"
-        type="source"
-        position={Position.Bottom}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="bottom-target"
-        type="target"
-        position={Position.Bottom}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-        }}
-      />
-      
-      <div className="text-sm font-semibold text-gray-800 text-center">
-        {nodeData.title}
-      </div>
-    </div>
-  );
-};
-
-// Data interface for circular status nodes
-export interface CircularNodeData extends Record<string, unknown> {
-  label: string;
-  onClick?: () => void;
-  color?: string;
-}
-
-/**
- * CircularNode Component - Circular nodes for status/states
- * Uses semantic colors based on status type (start, success, error, etc.)
- */
-const CircularNode = ({ data }: NodeProps) => {
-  const nodeData = data as CircularNodeData;
-  
-  const handleClick = () => {
-    if (nodeData.onClick) {
-      nodeData.onClick();
-    }
-    console.log('🖱️ Clicked status node:', nodeData.label);
-  };
-
-  // Semantic color assignment based on status meaning
-  const getCircleColor = () => {
-    const label = nodeData.label.toLowerCase();
-    if (label.includes('start')) return 'bg-emerald-100 border-emerald-400';
-    if (label.includes('cancel') || label.includes('reject')) return 'bg-gray-300 border-gray-500';
-    if (label.includes('accept') || label.includes('approv') || label.includes('fund')) return 'bg-blue-100 border-blue-400';
-    if (label.includes('lock')) return 'bg-purple-100 border-purple-400';
-    return 'bg-slate-100 border-slate-400'; // default neutral state
-  };
-
-  return (
-    <div 
-      className={`w-20 h-20 rounded-full ${getCircleColor()} border-2 flex items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-all duration-200`}
-      onClick={handleClick}
-    >
-      {/* Connection handles matching rectangular nodes */}
-      <Handle
-        id="left-target"
-        type="target"
-        position={Position.Left}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="top-target"
-        type="target"
-        position={Position.Top}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="right-source"
-        type="source"
-        position={Position.Right}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="right-target"
-        type="target"
-        position={Position.Right}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="bottom-source"
-        type="source"
-        position={Position.Bottom}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-        }}
-      />
-      <Handle
-        id="bottom-target"
-        type="target"
-        position={Position.Bottom}
-        style={{
-          background: '#64748b',
-          border: '2px solid #475569',
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-        }}
-      />
-      
-      <div className="text-xs font-bold text-center text-gray-700 px-1 leading-tight">
-        {nodeData.label}
-      </div>
-    </div>
-  );
-};
-
-/**
- * ============= WORKFLOW SELECTOR COMPONENT =============
- * Dropdown for switching between different workflow examples
- */
-
-interface WorkflowSelectorProps {
-  selectedWorkflow: string;
-  onWorkflowSelect: (workflowId: string) => void;
-}
-
-const WorkflowSelector = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSelectorProps) => {
-  const workflows = [
-    { id: 'ebm-version', name: 'EBM Version' },
-    { id: 'mortgage-origination', name: 'Mortgage Origination' },
-  ];
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-600">Workflow:</span>
-      <select 
-        value={selectedWorkflow}
-        onChange={(e) => onWorkflowSelect(e.target.value)}
-        className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        {workflows.map((workflow) => (
-          <option key={workflow.id} value={workflow.id}>
-            {workflow.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
-
-/**
- * ============= NODE CREATION UTILITIES =============
- * Functions to convert workflow data into positioned React Flow nodes
- */
-
-/**
- * Creates React Flow nodes with intelligent positioning and styling
- * Assigns appropriate visual types based on workflow node types and labels
- */
-export const createAdvancedNodes = (
+export const generateReactFlowNodes = (
   workflowData: WorkflowData,
-  config: LayoutConfig = defaultLayoutConfig
+  layout: ReturnType<typeof calculateSmartLayout>,
+  isHorizontal: boolean
 ): Node[] => {
-  console.log('🏗️ Creating positioned nodes for workflow:', workflowData.name);
-  
-  const layout = calculateSmartLayout(workflowData, config);
   const { positions } = layout;
   
-  const nodes: Node[] = [];
-
-  // Transform each workflow node into a positioned React Flow node
-  workflowData.nodes.forEach((workflowNode) => {
+  console.log('🎨 Generating React Flow nodes for', workflowData.nodes.length, 'workflow nodes');
+  
+  const reactFlowNodes = workflowData.nodes.map((workflowNode) => {
     const position = positions.get(workflowNode.id);
     
     if (!position) {
-      console.warn(`⚠️ No position calculated for node ${workflowNode.id}`);
-      return;
+      console.error(`❌ No position found for node ${workflowNode.id}`);
+      return null;
     }
-
-    // Determine visual node type and styling based on workflow semantics
-    let nodeType = 'workflow';
-    let nodeData: WorkflowNodeData | CircularNodeData;
     
-    if (workflowNode.type === 'status') {
-      // Status nodes are circular
-      nodeType = 'circular';
-      nodeData = {
-        label: workflowNode.label,
-      } as CircularNodeData;
-    } else {
-      // Event nodes are rectangular with context-appropriate styling
-      let subType = 'stage';
-      
-      // Intelligent sub-type detection based on label content
-      if (workflowNode.label.toLowerCase().includes('price') || 
-          workflowNode.label.toLowerCase().includes('collect') ||
-          workflowNode.label.toLowerCase().includes('link')) {
-        subType = 'data'; // Data collection steps get amber styling
-      } else if (workflowNode.label.toLowerCase().includes('decision') ||
-                 workflowNode.label.toLowerCase().includes('process') ||
-                 workflowNode.label.toLowerCase().includes('review')) {
-        subType = 'process'; // Processing steps get gray styling
-      }
-      
-      nodeData = {
-        title: workflowNode.label,
-        type: subType,
-      } as WorkflowNodeData;
-    }
-
-    nodes.push({
+    return {
       id: workflowNode.id,
-      type: nodeType,
+      type: workflowNode.type,
       position: { x: position.x, y: position.y },
-      data: nodeData,
-      draggable: true, // Allow manual repositioning
-    });
-  });
-
-  console.log(`✅ Created ${nodes.length} positioned nodes`);
-  return nodes;
-};
-
-/**
- * ============= DATA PROCESSING UTILITIES =============
- * High-level functions for preparing workflow data for visualization
- */
-
-/**
- * Processes raw workflow data through the full transformation and validation pipeline
- * This is the main entry point for converting any workflow data format
- */
-export const processWorkflowData = (inputData: WorkflowData | RawWorkflowData): WorkflowData => {
-  // Check if data is already in the correct format (optimization)
-  if (inputData && 
-      typeof inputData === 'object' && 
-      'nodes' in inputData && 
-      'edges' in inputData &&
-      Array.isArray(inputData.nodes) &&
-      Array.isArray(inputData.edges)) {
-    console.log('📋 Data already in correct format, validating...');
-    return validateWorkflowData(inputData as WorkflowData);
-  }
+      data: {
+        label: workflowNode.label,
+        originalType: workflowNode.type,
+      },
+    };
+  }).filter(Boolean) as Node[];
   
-  // Transform and validate the data through the full pipeline
-  console.log('🔄 Raw data detected, processing through transformation pipeline...');
-  const transformedData = transformWorkflowData(inputData as RawWorkflowData);
-  return validateWorkflowData(transformedData);
+  console.log('✅ Generated React Flow nodes:', reactFlowNodes.length);
+  return reactFlowNodes;
 };
 
 /**
- * ============= REACT FLOW NODE TYPE REGISTRY =============
- * Registers our custom node components with React Flow
+ * ============= VISUAL REACT FLOW COMPONENTS =============
+ * Custom node components that render in the workflow canvas
  */
 
+/**
+ * Status Node Component (Circular nodes representing states/statuses)
+ * These represent points in time or conditions in the workflow
+ */
+const StatusNode = memo(({ data, selected }: NodeProps) => {
+  console.log('🟢 Rendering Status Node:', data);
+  
+  return (
+    <div 
+      className={`
+        relative w-24 h-24 rounded-full border-2 
+        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
+        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
+        bg-amber-50 border-amber-300 
+        flex items-center justify-center
+        cursor-pointer hover:shadow-lg transition-all duration-200
+        shadow-md
+      `}
+    >
+      {/* Connection handles - invisible but functional */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      
+      {/* Node content */}
+      <div className="text-center">
+        <div className="text-xs font-medium text-amber-800 leading-tight">
+          {data.label as string}
+        </div>
+        {data.secondaryLabel && (
+          <div className="text-xs text-amber-600 mt-1">
+            {data.secondaryLabel as string}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+/**
+ * Event Node Component (Rectangular nodes representing actions/events)
+ * These represent actions that can be taken or events that occur
+ */
+const EventNode = memo(({ data, selected }: NodeProps) => {
+  console.log('📦 Rendering Event Node:', data);
+  
+  return (
+    <div 
+      className={`
+        relative px-4 py-3 min-w-[120px] h-16
+        rounded-lg border-2
+        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
+        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
+        bg-slate-50 border-slate-300
+        flex items-center justify-center
+        cursor-pointer hover:shadow-lg transition-all duration-200
+        shadow-md
+      `}
+    >
+      {/* Connection handles - invisible but functional */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      
+      {/* Node content */}
+      <div className="text-center">
+        <div className="text-sm font-medium text-slate-700">
+          {data.label as string}
+        </div>
+        {data.secondaryLabel && (
+          <div className="text-xs text-slate-500 mt-1">
+            {data.secondaryLabel as string}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+/**
+ * ============= NODE TYPE REGISTRY =============
+ * Maps node types to their respective React components
+ */
 const nodeTypes = {
-  workflow: memo(WorkflowNode),
-  circular: memo(CircularNode),
-  stage: memo(WorkflowNode),
-  data: memo(WorkflowNode),
-  'pmf-tag': memo(WorkflowNode),
-  'entities-group': memo(WorkflowNode),
+  status: StatusNode,  // Circular status nodes
+  event: EventNode,    // Rectangular event nodes
 };
 
 /**
  * ============= MAIN WORKFLOW MANAGER COMPONENT =============
  * The primary component that orchestrates the entire workflow visualization
  */
-
-interface WorkflowManagerProps {
-  layoutConfig?: typeof defaultLayoutConfig;
-  selectedWorkflowId?: string;
-  workflowData?: WorkflowData | RawWorkflowData;
-  onWorkflowSelect?: (workflowId: string) => void;
-  onDataLoad?: (data: RawWorkflowData) => void;
-  apiEndpoint?: string;
-}
-
-/**
- * WorkflowManager - Complete workflow visualization component
- * 
- * Features:
- * - Automatic layout with hierarchical positioning
- * - Support for horizontal and vertical orientations
- * - Mock data examples for demonstration
- * - Flexible data input (supports various backend formats)
- * - Professional Figma-inspired styling
- * - Interactive node selection and manipulation
- */
-const WorkflowManager = ({ 
-  layoutConfig = defaultLayoutConfig,
-  selectedWorkflowId: externalWorkflowId,
-  workflowData: externalWorkflowData,
-  onWorkflowSelect: externalOnWorkflowSelect,
-  apiEndpoint,
-  onDataLoad
-}: WorkflowManagerProps = {}) => {
-  // State management for workflow selection and layout orientation
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState(externalWorkflowId || defaultWorkflow);
+export const WorkflowManager = () => {
+  // ========== STATE MANAGEMENT ==========
+  const [selectedWorkflow, setSelectedWorkflow] = useState<string>(defaultWorkflow);
   const [isHorizontal, setIsHorizontal] = useState(true);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // ========== WORKFLOW DATA PROCESSING ==========
   
-  // Dynamic layout configuration based on current orientation
-  const currentLayoutConfig = useMemo(() => ({
-    ...layoutConfig,
-    isHorizontal
-  }), [layoutConfig, isHorizontal]);
-  
-  // Memoized workflow data processing to prevent unnecessary recalculations
+  /**
+   * Transform the selected workflow data for React Flow
+   * This runs whenever the selected workflow or layout orientation changes
+   */
   const currentWorkflowData = useMemo(() => {
-    const rawData = externalWorkflowData || 
-                    mockWorkflows[selectedWorkflowId] || 
-                    mockWorkflows[defaultWorkflow];
+    console.log('🔄 Processing workflow data for:', selectedWorkflow);
     
-    console.log('📊 Processing workflow data for visualization:', rawData.name || 'Unknown');
-    return processWorkflowData(rawData);
-  }, [externalWorkflowData, selectedWorkflowId]);
-  
-  // Memoized node generation with smart positioning
-  const initialNodes = useMemo(() => {
-    return createAdvancedNodes(currentWorkflowData, currentLayoutConfig);
-  }, [currentWorkflowData, currentLayoutConfig]);
-  
-  // Memoized edge generation with intelligent routing
-  const initialEdges = useMemo(() => {
-    console.log('🔗 Generating edges for workflow visualization');
-    const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
-    const edges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
-    console.log('✅ Generated', edges.length, 'edges with smart routing');
-    return edges;
-  }, [currentWorkflowData, currentLayoutConfig, isHorizontal]);
-
-  // React Flow state management
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  // Handle new connections created by user interaction
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
-
-  // Handle workflow selection from dropdown
-  const handleWorkflowSelect = (workflowId: string) => {
-    if (externalOnWorkflowSelect) {
-      externalOnWorkflowSelect(workflowId);
-    } else {
-      if (mockWorkflows[workflowId]) {
-        setSelectedWorkflowId(workflowId);
-      }
+    const rawWorkflow = mockWorkflows[selectedWorkflow];
+    if (!rawWorkflow) {
+      console.error('❌ Workflow not found:', selectedWorkflow);
+      return null;
     }
-  };
 
-  // Update nodes when workflow or layout changes
+    const transformedData = transformWorkflowData(rawWorkflow);
+    const validatedData = validateWorkflowData(transformedData);
+    
+    console.log('✅ Workflow data processed:', validatedData);
+    return validatedData;
+  }, [selectedWorkflow]);
+
+  /**
+   * Calculate layout and generate positioned nodes/edges
+   * This handles the visual positioning and routing logic
+   */
+  const { processedNodes, processedEdges } = useMemo(() => {
+    console.log('📐 Calculating layout for workflow visualization...');
+    
+    if (!currentWorkflowData) {
+      return { processedNodes: [], processedEdges: [] };
+    }
+
+    // Use our smart layout algorithm
+    const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
+    const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
+    
+    // Generate React Flow nodes with proper positioning
+    const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal);
+    const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
+    
+    console.log('✅ Layout calculated:', {
+      nodes: reactFlowNodes.length,
+      edges: reactFlowEdges.length,
+      isHorizontal
+    });
+    
+    return {
+      processedNodes: reactFlowNodes,
+      processedEdges: reactFlowEdges
+    };
+  }, [currentWorkflowData, isHorizontal]);
+
+  /**
+   * Update React Flow state when processed data changes
+   * This ensures the visualization stays in sync
+   */
   useEffect(() => {
-    const updatedNodes = createAdvancedNodes(currentWorkflowData, currentLayoutConfig);
-    setNodes(updatedNodes);
-  }, [currentWorkflowData, currentLayoutConfig, setNodes]);
+    console.log('🔄 Updating React Flow state...');
+    
+    if (processedNodes.length > 0) {
+      setNodes(processedNodes);
+      setIsInitialized(true);
+    }
+    
+    if (processedEdges.length > 0) {
+      setEdges(processedEdges);
+    }
+  }, [processedNodes, processedEdges, setNodes, setEdges]);
 
-  // Update edges when workflow or layout changes
-  useEffect(() => {
-    console.log('🔄 Updating edge layout due to configuration change');
-    const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
-    const updatedEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
-    setEdges(updatedEdges);
-  }, [currentWorkflowData, currentLayoutConfig, setEdges, isHorizontal]);
+  // ========== EVENT HANDLERS ==========
 
-  // Toggle between horizontal and vertical layouts
-  const toggleLayout = () => {
-    console.log('🔄 Switching layout orientation from', isHorizontal ? 'horizontal' : 'vertical', 'to', !isHorizontal ? 'horizontal' : 'vertical');
+  /**
+   * Handle new connections between nodes (user-created edges)
+   */
+  const onConnect = useCallback((params: Connection) => {
+    console.log('🔗 Creating new connection:', params);
+    setEdges((eds) => addEdge(params, eds));
+  }, [setEdges]);
+
+  /**
+   * Handle workflow selection changes
+   */
+  const handleWorkflowChange = useCallback((workflowId: string) => {
+    console.log('🔄 Changing workflow to:', workflowId);
+    setSelectedWorkflow(workflowId);
+    setIsInitialized(false);
+  }, []);
+
+  /**
+   * Handle layout orientation changes
+   */
+  const handleLayoutChange = useCallback(() => {
+    console.log('🔄 Toggling layout orientation from', isHorizontal ? 'horizontal' : 'vertical');
     setIsHorizontal(!isHorizontal);
-  };
+    setIsInitialized(false);
+  }, [isHorizontal]);
+
+  // ========== RENDER ==========
+  
+  // Loading state while data is being processed
+  if (!currentWorkflowData || !isInitialized) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-gray-600">Loading workflow visualization...</div>
+      </div>
+    );
+  }
 
   return (
-    // Main container with professional background
-    <div className="h-screen w-full" style={{ backgroundColor: '#f8fafc' }}>
-      {/* Control header with workflow selection and layout toggle */}
-      <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <WorkflowSelector 
-              selectedWorkflow={selectedWorkflowId}
-              onWorkflowSelect={handleWorkflowSelect}
-            />
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleLayout}
-              className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
-              title={`Switch to ${isHorizontal ? 'vertical' : 'horizontal'} layout`}
+    <div className="w-full h-screen bg-gray-50">
+      {/* Workflow Header Section */}
+      <div className="bg-black text-white px-6 py-4 flex items-center gap-3">
+        <div className="w-2 h-2 rounded-full bg-white"></div>
+        <h1 className="text-lg font-semibold">
+          {currentWorkflowData.name}
+        </h1>
+      </div>
+
+      {/* Controls Section */}
+      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+        <div className="flex items-center gap-4">
+          {/* Workflow Selection */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Workflow:</label>
+            <select 
+              value={selectedWorkflow}
+              onChange={(e) => handleWorkflowChange(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <Layout className="h-4 w-4" />
-              {isHorizontal ? 'Vertical' : 'Horizontal'}
-            </Button>
+              {Object.entries(mockWorkflows).map(([id, workflow]) => (
+                <option key={id} value={id}>
+                  {workflow.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {/* Layout Toggle */}
+          <Button
+            onClick={handleLayoutChange}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Layout className="w-4 h-4" />
+            {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+          </Button>
+        </div>
+
+        {/* Modified Entity Section */}
+        <div className="text-sm text-gray-600">
+          Modified Entity: <span className="font-medium text-gray-900">Workflow Definition</span>
         </div>
       </div>
 
-      {/* Main visualization canvas with border container */}
-      <div className="h-[calc(100vh-80px)] w-full p-6">
-        {/* Professional border container inspired by Figma design */}
-        <div 
-          className="h-full w-full rounded-lg shadow-lg overflow-hidden"
-          style={{ 
-            backgroundColor: '#ffffff',
-            border: '3px solid #4285f4', // Distinctive blue border
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)', // Professional drop shadow
-          }}
-        >
+      {/* Main Workflow Canvas with Border */}
+      <div className="p-4">
+        <div className="relative w-full h-[calc(100vh-200px)] border-2 border-gray-300 bg-white rounded-lg shadow-sm">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -1095,36 +886,54 @@ const WorkflowManager = ({
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             nodeTypes={nodeTypes}
+            connectionLineStyle={{
+              stroke: '#94a3b8',
+              strokeWidth: 2,
+            }}
+            defaultEdgeOptions={{
+              style: {
+                stroke: '#94a3b8',
+                strokeWidth: 2,
+              },
+              markerEnd: {
+                type: 'arrowclosed',
+                width: 20,
+                height: 20,
+                color: '#94a3b8',
+              },
+            }}
             fitView
-            className="w-full h-full"
-            defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
-            nodesDraggable={true}
-            nodesConnectable={true}
-            elementsSelectable={true}
+            fitViewOptions={{
+              padding: 0.2,
+              maxZoom: 1.5,
+              minZoom: 0.1,
+            }}
             minZoom={0.1}
             maxZoom={2}
-            connectionLineStyle={{ stroke: '#475569', strokeWidth: 2 }}
-            snapToGrid={true}
-            snapGrid={[15, 15]}
+            attributionPosition="top-right"
           >
-            {/* Subtle grid background for professional appearance */}
-            <Background 
-              color="#e2e8f0" 
+            {/* Background Pattern */}
+            <Background
+              color="#e2e8f0"
               gap={20}
               size={1}
-              style={{ backgroundColor: '#ffffff' }}
-            />
-            
-            {/* Clean control panel */}
-            <Controls 
-              className="bg-white/95 border border-gray-300 shadow-md rounded-lg"
-              showInteractive={false}
             />
           </ReactFlow>
+        </div>
+        
+        {/* External React Flow Controls */}
+        <div className="flex justify-center mt-4">
+          <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2">
+            <Controls
+              position="bottom-center"
+              className="relative"
+              showZoom={true}
+              showFitView={true}
+              showInteractive={true}
+            />
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
-export default WorkflowManager;

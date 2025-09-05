@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
-import WorkflowManager from "@/components/WorkflowManager";
+import { WorkflowManager } from "@/components/WorkflowManager";
 
 const App = () => {
   return (
