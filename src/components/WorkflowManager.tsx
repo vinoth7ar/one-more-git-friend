@@ -417,10 +417,11 @@ export const calculateSmartLayout = (
   };
 };
 
-// Clean edge routing with proper connection points and enhanced debugging
+// Clean edge routing with proper connection points based on layout orientation
 export const generateSmartEdges = (
   workflowData: WorkflowData,
-  layout: ReturnType<typeof calculateSmartLayout>
+  layout: ReturnType<typeof calculateSmartLayout>,
+  isHorizontal: boolean = true
 ): Edge[] => {
   const { positions, levels } = layout;
   console.log('🔗 Generating edges for workflow:', workflowData.edges.length, 'edges');
@@ -445,27 +446,53 @@ export const generateSmartEdges = (
     
     console.log(`✅ Edge ${edge.id}: ${edge.source} (level ${sourceLevel}) -> ${edge.target} (level ${targetLevel}), backward: ${isBackwardFlow}`);
     
-    // Enhanced styling for visibility with bright colors
+    // Determine connection points based on layout orientation
+    let sourceHandle: string | undefined;
+    let targetHandle: string | undefined;
+    
+    if (isHorizontal) {
+      // Horizontal layout: left-to-right flow, bottom connections for backward flows
+      if (isBackwardFlow) {
+        sourceHandle = 'bottom-source';
+        targetHandle = 'bottom-target';
+      } else {
+        sourceHandle = 'right-source';
+        targetHandle = 'left-target';
+      }
+    } else {
+      // Vertical layout: top-to-bottom flow, right connections for backward flows
+      if (isBackwardFlow) {
+        sourceHandle = 'right-source';
+        targetHandle = 'right-target';
+      } else {
+        sourceHandle = 'bottom-source';
+        targetHandle = 'top-target';
+      }
+    }
+    
+    // Figma-inspired styling - clean lines with subtle colors
     const edgeStyle = {
-      stroke: isBackwardFlow ? '#ff0000' : '#0066ff', // Bright red for backward, bright blue for forward
-      strokeWidth: 4, // Increased stroke width
-      strokeDasharray: isBackwardFlow ? '10,10' : undefined,
+      stroke: isBackwardFlow ? '#94a3b8' : '#475569', // Subtle grays instead of bright colors
+      strokeWidth: 2,
+      strokeDasharray: isBackwardFlow ? '6,6' : undefined,
     };
     
     const generatedEdge: Edge = {
       id: edge.id || `edge-${index}`,
       source: edge.source,
       target: edge.target,
+      sourceHandle,
+      targetHandle,
       type: 'smoothstep',
-      animated: true, // Make all edges animated for visibility
+      animated: false, // Clean static lines like in Figma
       style: edgeStyle,
       markerEnd: {
         type: 'arrowclosed',
-        color: isBackwardFlow ? '#ff0000' : '#0066ff',
-        width: 30,
-        height: 30,
+        color: isBackwardFlow ? '#94a3b8' : '#475569',
+        width: 20,
+        height: 20,
       },
-      zIndex: 1000, // Ensure edges are above other elements
+      zIndex: 1,
     };
     
     console.log('📍 Generated edge details:', generatedEdge);
@@ -473,7 +500,6 @@ export const generateSmartEdges = (
   }).filter(Boolean) as Edge[];
   
   console.log('🎯 Total generated edges:', generatedEdges.length);
-  console.log('📋 All edges:', generatedEdges);
   return generatedEdges;
 };
 
@@ -493,16 +519,22 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   color?: string;
 }
 
-// WorkflowNode Component (from WorkflowNode.tsx)
+// WorkflowNode Component - Figma-inspired styling
 const WorkflowNode = ({ data }: NodeProps) => {
   const nodeData = data as WorkflowNodeData;
   
   const getNodeStyles = () => {
     switch (nodeData.type) {
       case 'stage':
-        return 'bg-blue-100 border-2 border-blue-300 rounded-md p-6 min-w-[200px] min-h-[120px] cursor-pointer hover:shadow-lg transition-all duration-200 shadow-md';
+        return 'bg-slate-100 border-2 border-slate-300 rounded-lg p-4 min-w-[180px] min-h-[100px] cursor-pointer hover:shadow-md transition-all duration-200 shadow-sm';
+      case 'data':
+        // Yellow/orange node like "Accept Price" in Figma
+        return 'bg-amber-200 border-2 border-amber-400 rounded-lg p-3 min-w-[140px] min-h-[80px] cursor-pointer hover:shadow-md transition-all duration-200 shadow-sm';
+      case 'process':
+        // Gray process blocks like transition blocks
+        return 'bg-gray-200 border-2 border-gray-400 rounded-lg p-4 min-w-[200px] min-h-[120px] cursor-pointer hover:shadow-md transition-all duration-200 shadow-sm';
       default:
-        return 'bg-gray-100 border-gray-300 border rounded p-3 cursor-pointer hover:shadow-md transition-shadow min-w-[180px] min-h-[100px]';
+        return 'bg-white border-2 border-gray-300 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow min-w-[160px] min-h-[80px] shadow-sm';
     }
   };
 
@@ -515,31 +547,81 @@ const WorkflowNode = ({ data }: NodeProps) => {
 
   return (
     <div className={getNodeStyles()} onClick={handleClick}>
-      {/* Connection handles for edge routing */}
+      {/* Connection handles for different orientations */}
       <Handle
+        id="left-target"
         type="target"
         position={Position.Left}
         style={{
-          background: '#3b82f6',
-          border: '2px solid #1d4ed8',
-          width: 16,
-          height: 16,
-          zIndex: 1001,
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
         }}
       />
       <Handle
+        id="top-target"
+        type="target"
+        position={Position.Top}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="right-source"
         type="source"
         position={Position.Right}
         style={{
-          background: '#3b82f6',
-          border: '2px solid #1d4ed8',
-          width: 16,
-          height: 16,
-          zIndex: 1001,
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="right-target"
+        type="target"
+        position={Position.Right}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="bottom-source"
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="bottom-target"
+        type="target"
+        position={Position.Bottom}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
         }}
       />
       
-      <div className="text-lg font-bold text-gray-800 text-center">
+      <div className="text-sm font-semibold text-gray-800 text-center">
         {nodeData.title}
       </div>
     </div>
@@ -553,7 +635,7 @@ export interface CircularNodeData extends Record<string, unknown> {
   color?: string;
 }
 
-// CircularNode Component (from CircularNode.tsx)
+// CircularNode Component - Figma-inspired status nodes
 const CircularNode = ({ data }: NodeProps) => {
   const nodeData = data as CircularNodeData;
   
@@ -564,40 +646,96 @@ const CircularNode = ({ data }: NodeProps) => {
     console.log('Clicked status node:', nodeData.label);
   };
 
-  const getCircleStyles = () => {
-    return 'w-20 h-20 rounded-full bg-green-100 border-2 border-green-400 flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200';
+  const getCircleColor = () => {
+    // Different colors for different status types, matching Figma
+    const label = nodeData.label.toLowerCase();
+    if (label.includes('start')) return 'bg-emerald-100 border-emerald-400';
+    if (label.includes('cancel') || label.includes('reject')) return 'bg-gray-300 border-gray-500';
+    if (label.includes('accept') || label.includes('approv') || label.includes('fund')) return 'bg-blue-100 border-blue-400';
+    if (label.includes('lock')) return 'bg-purple-100 border-purple-400';
+    return 'bg-slate-100 border-slate-400'; // default
   };
 
   return (
     <div 
-      className={getCircleStyles()}
+      className={`w-20 h-20 rounded-full ${getCircleColor()} border-2 flex items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-all duration-200`}
       onClick={handleClick}
     >
-      {/* Connection handles for circular nodes */}
+      {/* Connection handles for different orientations */}
       <Handle
+        id="left-target"
         type="target"
         position={Position.Left}
         style={{
-          background: '#22c55e',
-          border: '2px solid #16a34a',
-          width: 16,
-          height: 16,
-          zIndex: 1001,
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
         }}
       />
       <Handle
+        id="top-target"
+        type="target"
+        position={Position.Top}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="right-source"
         type="source"
         position={Position.Right}
         style={{
-          background: '#22c55e',
-          border: '2px solid #16a34a',
-          width: 16,
-          height: 16,
-          zIndex: 1001,
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="right-target"
+        type="target"
+        position={Position.Right}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="bottom-source"
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+        }}
+      />
+      <Handle
+        id="bottom-target"
+        type="target"
+        position={Position.Bottom}
+        style={{
+          background: '#64748b',
+          border: '2px solid #475569',
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
         }}
       />
       
-      <div className="text-xs font-bold text-center text-gray-800 px-2 leading-tight">
+      <div className="text-xs font-bold text-center text-gray-700 px-1 leading-tight">
         {nodeData.label}
       </div>
     </div>
@@ -642,7 +780,7 @@ export const createAdvancedNodes = (
   console.log('Creating nodes with hierarchical layout for:', workflowData);
   
   const layout = calculateSmartLayout(workflowData, config);
-  const { positions, canvasWidth, canvasHeight, analysis } = layout;
+  const { positions } = layout;
   
   const nodes: Node[] = [];
 
@@ -655,31 +793,39 @@ export const createAdvancedNodes = (
       return;
     }
 
-    // Determine node style based on type
-    const nodeStyle = workflowNode.type === 'status' ? 
-      { 
-        width: config.circleSize, 
-        height: config.circleSize,
-        borderRadius: '50%'
-      } : 
-      { 
-        width: config.stageWidth, 
-        height: config.stageHeight 
-      };
+    // Determine node type and styling based on Figma reference
+    let nodeType = 'workflow';
+    let nodeData: WorkflowNodeData | CircularNodeData;
+    
+    if (workflowNode.type === 'status') {
+      nodeType = 'circular';
+      nodeData = {
+        label: workflowNode.label,
+      } as CircularNodeData;
+    } else {
+      // Event nodes - determine sub-type based on label for better styling
+      let subType = 'stage';
+      if (workflowNode.label.toLowerCase().includes('price') || 
+          workflowNode.label.toLowerCase().includes('collect') ||
+          workflowNode.label.toLowerCase().includes('link')) {
+        subType = 'data'; // Yellow nodes like "Accept Price"
+      } else if (workflowNode.label.toLowerCase().includes('decision') ||
+                 workflowNode.label.toLowerCase().includes('process') ||
+                 workflowNode.label.toLowerCase().includes('block')) {
+        subType = 'process'; // Gray process blocks
+      }
+      
+      nodeData = {
+        title: workflowNode.label,
+        type: subType,
+      } as WorkflowNodeData;
+    }
 
     nodes.push({
       id: workflowNode.id,
-      type: workflowNode.type === 'status' ? 'circular' : 'workflow',
+      type: nodeType,
       position: { x: position.x, y: position.y },
-      data: workflowNode.type === 'status' ? 
-        {
-          label: workflowNode.label,
-        } as CircularNodeData :
-        {
-          title: workflowNode.label,
-          type: 'stage',
-        } as WorkflowNodeData,
-      style: nodeStyle,
+      data: nodeData,
       draggable: true,
     });
   });
@@ -760,10 +906,10 @@ const WorkflowManager = ({
   const initialEdges = useMemo(() => {
     console.log('Creating initial edges for workflow:', currentWorkflowData.name);
     const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
-    const edges = generateSmartEdges(currentWorkflowData, layout);
+    const edges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
     console.log('Initial edges created:', edges.length);
     return edges;
-  }, [currentWorkflowData, currentLayoutConfig]);
+  }, [currentWorkflowData, currentLayoutConfig, isHorizontal]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -794,10 +940,10 @@ const WorkflowManager = ({
   useEffect(() => {
     console.log('Updating edges due to workflow or layout change');
     const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
-    const updatedEdges = generateSmartEdges(currentWorkflowData, layout);
+    const updatedEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
     console.log('Setting updated edges:', updatedEdges.length);
     setEdges(updatedEdges);
-  }, [currentWorkflowData, currentLayoutConfig, setEdges]);
+  }, [currentWorkflowData, currentLayoutConfig, setEdges, isHorizontal]);
 
   // Toggle layout orientation
   const toggleLayout = () => {
@@ -805,9 +951,9 @@ const WorkflowManager = ({
   };
 
   return (
-    <div className="h-screen w-full bg-gray-50">
-      {/* Simplified Header - Only Essential Controls */}
-      <div className="bg-white border-b border-gray-200 p-4">
+    <div className="h-screen w-full" style={{ backgroundColor: '#f1f0eb' }}>
+      {/* Simplified Header - Figma inspired */}
+      <div className="bg-white border-b border-gray-300 p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <WorkflowSelector 
@@ -819,7 +965,7 @@ const WorkflowManager = ({
               variant="outline"
               size="sm"
               onClick={toggleLayout}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
             >
               <Layout className="h-4 w-4" />
               {isHorizontal ? 'Vertical' : 'Horizontal'}
@@ -828,37 +974,46 @@ const WorkflowManager = ({
         </div>
       </div>
 
-      {/* Full Screen Canvas */}
-      <div className="h-[calc(100vh-80px)] w-full">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          className="w-full h-full"
-          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-          nodesDraggable={true}
-          nodesConnectable={true}
-          elementsSelectable={true}
-          minZoom={0.1}
-          maxZoom={2}
-          connectionLineStyle={{ stroke: '#0066ff', strokeWidth: 3 }}
-          snapToGrid={true}
-          snapGrid={[15, 15]}
+      {/* Full Screen Canvas with Figma-inspired styling */}
+      <div className="h-[calc(100vh-80px)] w-full p-6">
+        <div 
+          className="h-full w-full rounded-lg shadow-lg"
+          style={{ 
+            backgroundColor: '#ffffff',
+            border: '3px solid #4285f4', // Blue border like in Figma
+          }}
         >
-          <Background 
-            color="#e5e7eb" 
-            gap={20}
-            size={1}
-          />
-          <Controls 
-            className="bg-white/90 border border-gray-300 shadow-lg rounded-lg"
-            showInteractive={false}
-          />
-        </ReactFlow>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            className="w-full h-full rounded-lg"
+            defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={true}
+            minZoom={0.1}
+            maxZoom={2}
+            connectionLineStyle={{ stroke: '#475569', strokeWidth: 2 }}
+            snapToGrid={true}
+            snapGrid={[15, 15]}
+          >
+            <Background 
+              color="#e2e8f0" 
+              gap={20}
+              size={1}
+              style={{ backgroundColor: '#ffffff' }}
+            />
+            <Controls 
+              className="bg-white/95 border border-gray-300 shadow-md rounded-lg"
+              showInteractive={false}
+            />
+          </ReactFlow>
+        </div>
       </div>
     </div>
   );
