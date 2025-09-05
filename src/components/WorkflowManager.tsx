@@ -15,7 +15,6 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
-import { Layout } from 'lucide-react';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -897,7 +896,7 @@ export const WorkflowManager = () => {
             size="sm"
             className="flex items-center gap-2"
           >
-            <Layout className="w-4 h-4" />
+            <span>⚡</span>
             {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
           </Button>
         </div>
