@@ -540,25 +540,28 @@ export const calculateSmartLayout = (
   };
 };
 
-// Clean edge routing with proper connection points
+// Clean edge routing with proper connection points and debugging
 export const generateSmartEdges = (
   workflowData: WorkflowData,
   layout: ReturnType<typeof calculateSmartLayout>
 ): Edge[] => {
   const { positions, levels } = layout;
+  console.log('Generating edges for workflow:', workflowData.edges.length, 'edges');
   
-  return workflowData.edges.map((edge, index) => {
+  const generatedEdges = workflowData.edges.map((edge, index) => {
     const sourcePos = positions.get(edge.source);
     const targetPos = positions.get(edge.target);
     
     if (!sourcePos || !targetPos) {
-      console.warn(`Edge ${edge.id} references non-existent nodes`);
+      console.warn(`Edge ${edge.id} references non-existent nodes - source: ${edge.source}, target: ${edge.target}`);
       return null;
     }
     
     const sourceLevel = levels.get(edge.source) || 0;
     const targetLevel = levels.get(edge.target) || 0;
     const isBackwardFlow = targetLevel <= sourceLevel;
+    
+    console.log(`Edge ${edge.id}: ${edge.source} (level ${sourceLevel}) -> ${edge.target} (level ${targetLevel}), backward: ${isBackwardFlow}`);
     
     // Determine connection points and edge styling
     let sourceHandle = Position.Right;
@@ -575,11 +578,11 @@ export const generateSmartEdges = (
     // Special styling for different connection types
     const edgeStyle = {
       stroke: isBackwardFlow ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-      strokeWidth: 2,
-      strokeDasharray: isBackwardFlow ? '5,5' : undefined,
+      strokeWidth: 3,
+      strokeDasharray: isBackwardFlow ? '8,8' : undefined,
     };
     
-    return {
+    const generatedEdge = {
       id: edge.id || `edge-${index}`,
       source: edge.source,
       target: edge.target,
@@ -591,11 +594,17 @@ export const generateSmartEdges = (
       markerEnd: {
         type: 'arrowclosed',
         color: isBackwardFlow ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-        width: 20,
-        height: 20,
+        width: 25,
+        height: 25,
       },
     };
+    
+    console.log('Generated edge:', generatedEdge);
+    return generatedEdge;
   }).filter(Boolean) as Edge[];
+  
+  console.log('Total generated edges:', generatedEdges.length);
+  return generatedEdges;
 };
 
 // ============= NODE COMPONENTS =============
@@ -1112,8 +1121,11 @@ const WorkflowManager = ({
   }, [currentWorkflowData, currentLayoutConfig]);
   
   const initialEdges = useMemo(() => {
+    console.log('Creating initial edges for workflow:', currentWorkflowData.name);
     const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
-    return generateSmartEdges(currentWorkflowData, layout);
+    const edges = generateSmartEdges(currentWorkflowData, layout);
+    console.log('Initial edges created:', edges.length);
+    return edges;
   }, [currentWorkflowData, currentLayoutConfig]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -1143,8 +1155,10 @@ const WorkflowManager = ({
 
   // Update edges when workflow data or layout changes
   useEffect(() => {
+    console.log('Updating edges due to workflow or layout change');
     const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
     const updatedEdges = generateSmartEdges(currentWorkflowData, layout);
+    console.log('Setting updated edges:', updatedEdges.length);
     setEdges(updatedEdges);
   }, [currentWorkflowData, currentLayoutConfig, setEdges]);
 
