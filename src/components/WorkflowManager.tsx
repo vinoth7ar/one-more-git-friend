@@ -605,24 +605,40 @@ const StatusNode = memo(({ data, selected }: NodeProps) => {
         shadow-md
       `}
     >
-      {/* Connection handles - invisible but functional */}
+      {/* Connection handles - invisible but functional with proper IDs */}
       <Handle 
+        id="left-target"
         type="target" 
         position={Position.Left} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
       <Handle 
+        id="right-source"
         type="source" 
         position={Position.Right} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
       <Handle 
+        id="top-target"
         type="target" 
         position={Position.Top} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
       <Handle 
+        id="bottom-source"
         type="source" 
+        position={Position.Bottom} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        id="right-target"
+        type="target" 
+        position={Position.Right} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        id="bottom-target"
+        type="target" 
         position={Position.Bottom} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
@@ -662,24 +678,40 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
         shadow-md
       `}
     >
-      {/* Connection handles - invisible but functional */}
+      {/* Connection handles - invisible but functional with proper IDs */}
       <Handle 
+        id="left-target"
         type="target" 
         position={Position.Left} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
       <Handle 
+        id="right-source"
         type="source" 
         position={Position.Right} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
       <Handle 
+        id="top-target"
         type="target" 
         position={Position.Top} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
       <Handle 
+        id="bottom-source"
         type="source" 
+        position={Position.Bottom} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        id="right-target"
+        type="target" 
+        position={Position.Right} 
+        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+      />
+      <Handle 
+        id="bottom-target"
+        type="target" 
         position={Position.Bottom} 
         className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
       />
