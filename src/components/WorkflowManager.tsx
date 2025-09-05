@@ -364,13 +364,13 @@ export const defaultWorkflow = 'ebm-version';
 
 // ============= ADVANCED LAYOUT UTILITIES =============
 export const defaultLayoutConfig: LayoutConfig = {
-  workflowWidth: 1600,
-  workflowHeight: 900,
-  stageWidth: 180,
-  stageHeight: 100,
-  circleSize: 70,
-  padding: 120,
-  spacing: 280,
+  workflowWidth: 1800,
+  workflowHeight: 1200,
+  stageWidth: 200,
+  stageHeight: 120,
+  circleSize: 80,
+  padding: 150,
+  spacing: 350,
   isHorizontal: true,
 };
 
@@ -426,18 +426,18 @@ export const analyzeGraphStructure = (workflowData: WorkflowData) => {
 };
 
 
-// Advanced layout algorithm with horizontal/vertical support and overlap prevention
+// Advanced layout algorithm with clean edge patterns
 export const calculateSmartLayout = (
   workflowData: WorkflowData,
   config: LayoutConfig = defaultLayoutConfig
 ) => {
   const analysis = analyzeGraphStructure(workflowData);
-  const { nodes, outgoing, startNodes } = analysis;
-  const { padding, stageWidth, stageHeight, spacing, isHorizontal } = config;
+  const { nodes, outgoing, incoming, startNodes } = analysis;
+  const { padding, stageWidth, stageHeight, isHorizontal } = config;
   
-  // Calculate levels using BFS
+  // Calculate levels using BFS for clean hierarchy
   const levels = new Map<string, number>();
-  const positions = new Map<string, { x: number; y: number; level: number }>();
+  const positions = new Map<string, { x: number; y: number; level: number; row: number }>();
   const visited = new Set<string>();
   
   // Start BFS from identified start nodes
@@ -474,7 +474,7 @@ export const calculateSmartLayout = (
     }
   });
   
-  // Group nodes by level
+  // Group nodes by level and arrange in rows for clean layout
   const levelGroups = new Map<number, string[]>();
   levels.forEach((level, nodeId) => {
     if (!levelGroups.has(level)) {
@@ -484,61 +484,49 @@ export const calculateSmartLayout = (
   });
   
   const maxLevel = Math.max(...Array.from(levels.values()));
-  const levelCount = maxLevel + 1;
   
-  // Enhanced spacing calculations to prevent overlaps
-  const minNodeGap = 140; // Minimum gap between nodes
-  const minLevelGap = 320; // Minimum gap between levels
+  // Enhanced spacing for clean appearance
+  const levelSpacing = 350; // Increased space between levels
+  const nodeSpacing = 150;  // Clean spacing between nodes in same level
   
-  // Calculate positions based on layout orientation with enhanced spacing
+  // Calculate positions with optimized layout
   if (isHorizontal) {
-    // Horizontal layout: levels go left to right with collision detection
     for (let level = 0; level <= maxLevel; level++) {
       const nodesInLevel = levelGroups.get(level) || [];
-      const x = padding + level * minLevelGap;
+      const x = padding + level * levelSpacing;
       
-      // Calculate optimal vertical spacing to prevent overlaps
-      const totalRequiredHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * minNodeGap;
-      const availableHeight = 900 - 2 * padding;
-      const nodeSpacing = Math.max(minNodeGap, (availableHeight - nodesInLevel.length * stageHeight) / Math.max(1, nodesInLevel.length - 1));
-      
-      // Center nodes vertically and distribute evenly
-      const startY = padding + Math.max(0, (availableHeight - totalRequiredHeight) / 2);
+      // Arrange nodes in clean rows
+      const totalHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * nodeSpacing;
+      const startY = padding + Math.max(100, (1000 - totalHeight) / 2);
       
       nodesInLevel.forEach((nodeId, index) => {
         const y = startY + index * (stageHeight + nodeSpacing);
-        positions.set(nodeId, { x, y, level });
+        positions.set(nodeId, { x, y, level, row: index });
       });
     }
   } else {
-    // Vertical layout: levels go top to bottom with collision detection
     for (let level = 0; level <= maxLevel; level++) {
       const nodesInLevel = levelGroups.get(level) || [];
-      const y = padding + level * minLevelGap;
+      const y = padding + level * levelSpacing;
       
-      // Calculate optimal horizontal spacing to prevent overlaps
-      const totalRequiredWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * minNodeGap;
-      const availableWidth = 1600 - 2 * padding;
-      const nodeSpacing = Math.max(minNodeGap, (availableWidth - nodesInLevel.length * stageWidth) / Math.max(1, nodesInLevel.length - 1));
-      
-      // Center nodes horizontally and distribute evenly
-      const startX = padding + Math.max(0, (availableWidth - totalRequiredWidth) / 2);
+      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * nodeSpacing;
+      const startX = padding + Math.max(100, (1800 - totalWidth) / 2);
       
       nodesInLevel.forEach((nodeId, index) => {
         const x = startX + index * (stageWidth + nodeSpacing);
-        positions.set(nodeId, { x, y, level });
+        positions.set(nodeId, { x, y, level, row: index });
       });
     }
   }
   
-  // Calculate canvas dimensions with proper margins
+  // Calculate canvas dimensions
   let canvasWidth, canvasHeight;
   if (isHorizontal) {
-    canvasWidth = Math.max(levelCount * minLevelGap + 2 * padding + stageWidth, 1600);
-    canvasHeight = 1000;
+    canvasWidth = Math.max((maxLevel + 1) * levelSpacing + 2 * padding + stageWidth, 1800);
+    canvasHeight = 1200;
   } else {
-    canvasWidth = 1800;
-    canvasHeight = Math.max(levelCount * minLevelGap + 2 * padding + stageHeight, 1000);
+    canvasWidth = 2000;
+    canvasHeight = Math.max((maxLevel + 1) * levelSpacing + 2 * padding + stageHeight, 1200);
   }
   
   return {
@@ -552,12 +540,12 @@ export const calculateSmartLayout = (
   };
 };
 
-// Smart edge routing to avoid overlaps (no labels for cleaner look)
+// Clean edge routing with proper connection points
 export const generateSmartEdges = (
   workflowData: WorkflowData,
   layout: ReturnType<typeof calculateSmartLayout>
 ): Edge[] => {
-  const { positions } = layout;
+  const { positions, levels } = layout;
   
   return workflowData.edges.map((edge, index) => {
     const sourcePos = positions.get(edge.source);
@@ -568,27 +556,44 @@ export const generateSmartEdges = (
       return null;
     }
     
-    // Determine edge type based on layout
-    let edgeType = 'smoothstep';
-    let animated = false;
+    const sourceLevel = levels.get(edge.source) || 0;
+    const targetLevel = levels.get(edge.target) || 0;
+    const isBackwardFlow = targetLevel <= sourceLevel;
     
-    // If nodes are on different levels, use different edge styling
-    if (Math.abs(sourcePos.level - targetPos.level) > 1) {
+    // Determine connection points and edge styling
+    let sourceHandle = Position.Right;
+    let targetHandle = Position.Left;
+    let edgeType = 'smoothstep';
+    
+    // Handle backward flows (loops) - connect from bottom to bottom
+    if (isBackwardFlow) {
+      sourceHandle = Position.Bottom;
+      targetHandle = Position.Bottom;
       edgeType = 'smoothstep';
-      animated = true;
     }
+    
+    // Special styling for different connection types
+    const edgeStyle = {
+      stroke: isBackwardFlow ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+      strokeWidth: 2,
+      strokeDasharray: isBackwardFlow ? '5,5' : undefined,
+    };
     
     return {
       id: edge.id || `edge-${index}`,
       source: edge.source,
       target: edge.target,
+      sourceHandle,
+      targetHandle,
       type: edgeType,
-      animated,
-      style: {
-        stroke: 'hsl(var(--primary))',
-        strokeWidth: 2,
+      animated: !isBackwardFlow,
+      style: edgeStyle,
+      markerEnd: {
+        type: 'arrowclosed',
+        color: isBackwardFlow ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
+        width: 20,
+        height: 20,
       },
-      // Remove labels for cleaner appearance
     };
   }).filter(Boolean) as Edge[];
 };
@@ -732,14 +737,72 @@ const WorkflowNode = ({ data }: NodeProps) => {
     );
   }
 
+  const getNodeColor = () => {
+    switch (nodeData.type) {
+      case 'workflow':
+        return 'hsl(var(--primary))';
+      case 'stage':
+        return 'hsl(var(--secondary))';
+      case 'data':
+        return nodeData.color === 'yellow' ? 'hsl(var(--warning))' : 'hsl(var(--accent))';
+      case 'pmf-tag':
+        return 'hsl(var(--success))';
+      case 'process':
+        return 'hsl(var(--info))';
+      case 'entities-group':
+        return 'hsl(var(--muted))';
+      default:
+        return 'hsl(var(--background))';
+    }
+  };
+
   return (
     <div className={getNodeStyles()} onClick={handleClick}>
+      {/* Add connection handles for clean edge routing */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: getNodeColor(),
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        style={{
+          background: getNodeColor(),
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: getNodeColor(),
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: getNodeColor(),
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      
       <div className="text-lg font-bold text-foreground text-center">
         {nodeData.title}
       </div>
-      
-      <Handle type="target" position={Position.Top} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border" />
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border" />
     </div>
   );
 };
@@ -771,12 +834,51 @@ const CircularNode = ({ data }: NodeProps) => {
       className={getCircleStyles()}
       onClick={handleClick}
     >
+      {/* Connection handles for circular nodes */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: 'hsl(var(--primary))',
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        style={{
+          background: 'hsl(var(--primary))',
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: 'hsl(var(--primary))',
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{
+          background: 'hsl(var(--primary))',
+          border: '2px solid hsl(var(--border))',
+          width: 12,
+          height: 12,
+        }}
+      />
+      
       <div className="text-xs font-bold text-center text-foreground px-2 leading-tight">
         {nodeData.label}
       </div>
-      
-      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border" />
-      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-workflow-border rounded-none border border-workflow-border" />
     </div>
   );
 };
