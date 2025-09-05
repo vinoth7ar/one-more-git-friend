@@ -235,128 +235,6 @@ export const mockWorkflows: Record<string, WorkflowData> = {
       { id: "e14", source: "approved", target: "closing", label: "" },
       { id: "e15", source: "closing", target: "funding", label: "" }
     ]
-  },
-  'risk-assessment': {
-    id: "risk-assessment-002",
-    name: "Credit Risk Assessment",
-    description: "Comprehensive credit risk evaluation workflow for mortgage applications",
-    nodes: [
-      { id: "risk-start", type: "status", label: "Risk Assessment Start" },
-      { id: "data-collection", type: "event", label: "Data Collection" },
-      { id: "credit-score", type: "event", label: "Credit Score Analysis" },
-      { id: "debt-ratio", type: "event", label: "Debt-to-Income Ratio" },
-      { id: "employment-history", type: "event", label: "Employment History" },
-      { id: "asset-verification", type: "event", label: "Asset Verification" },
-      { id: "risk-modeling", type: "status", label: "Risk Modeling" },
-      { id: "fraud-check", type: "event", label: "Fraud Detection" },
-      { id: "compliance-check", type: "event", label: "Compliance Review" },
-      { id: "risk-score", type: "status", label: "Risk Score Generated" },
-      { id: "low-risk", type: "status", label: "Low Risk" },
-      { id: "medium-risk", type: "status", label: "Medium Risk" },
-      { id: "high-risk", type: "status", label: "High Risk" },
-      { id: "manual-review", type: "event", label: "Manual Review Required" },
-      { id: "risk-approved", type: "status", label: "Risk Approved" },
-      { id: "risk-declined", type: "status", label: "Risk Declined" }
-    ],
-    edges: [
-      { id: "r1", source: "risk-start", target: "data-collection", label: "" },
-      { id: "r2", source: "data-collection", target: "credit-score", label: "" },
-      { id: "r3", source: "data-collection", target: "debt-ratio", label: "" },
-      { id: "r4", source: "data-collection", target: "employment-history", label: "" },
-      { id: "r5", source: "data-collection", target: "asset-verification", label: "" },
-      { id: "r6", source: "credit-score", target: "risk-modeling", label: "" },
-      { id: "r7", source: "debt-ratio", target: "risk-modeling", label: "" },
-      { id: "r8", source: "employment-history", target: "risk-modeling", label: "" },
-      { id: "r9", source: "asset-verification", target: "risk-modeling", label: "" },
-      { id: "r10", source: "risk-modeling", target: "fraud-check", label: "" },
-      { id: "r11", source: "fraud-check", target: "compliance-check", label: "" },
-      { id: "r12", source: "compliance-check", target: "risk-score", label: "" },
-      { id: "r13", source: "risk-score", target: "low-risk", label: "" },
-      { id: "r14", source: "risk-score", target: "medium-risk", label: "" },
-      { id: "r15", source: "risk-score", target: "high-risk", label: "" },
-      { id: "r16", source: "medium-risk", target: "manual-review", label: "" },
-      { id: "r17", source: "high-risk", target: "manual-review", label: "" },
-      { id: "r18", source: "low-risk", target: "risk-approved", label: "" },
-      { id: "r19", source: "manual-review", target: "risk-approved", label: "" },
-      { id: "r20", source: "manual-review", target: "risk-declined", label: "" }
-    ]
-  },
-  'compliance-audit': {
-    id: "compliance-audit-003",
-    name: "Regulatory Compliance Audit",
-    description: "Systematic compliance audit workflow for mortgage operations",
-    nodes: [
-      { id: "audit-init", type: "status", label: "Audit Initiated" },
-      { id: "scope-define", type: "event", label: "Define Scope" },
-      { id: "document-request", type: "event", label: "Document Request" },
-      { id: "loan-sampling", type: "event", label: "Loan File Sampling" },
-      { id: "review-process", type: "status", label: "Review Process" },
-      { id: "trid-compliance", type: "event", label: "TRID Compliance Check" },
-      { id: "fair-lending", type: "event", label: "Fair Lending Review" },
-      { id: "qm-compliance", type: "event", label: "QM Rule Compliance" },
-      { id: "findings-analysis", type: "status", label: "Findings Analysis" },
-      { id: "violation-found", type: "status", label: "Violations Found" },
-      { id: "compliant", type: "status", label: "Fully Compliant" },
-      { id: "corrective-action", type: "event", label: "Corrective Action Plan" },
-      { id: "remediation", type: "event", label: "Remediation Process" },
-      { id: "follow-up", type: "event", label: "Follow-up Review" },
-      { id: "audit-complete", type: "status", label: "Audit Complete" }
-    ],
-    edges: [
-      { id: "c1", source: "audit-init", target: "scope-define", label: "" },
-      { id: "c2", source: "scope-define", target: "document-request", label: "" },
-      { id: "c3", source: "document-request", target: "loan-sampling", label: "" },
-      { id: "c4", source: "loan-sampling", target: "review-process", label: "" },
-      { id: "c5", source: "review-process", target: "trid-compliance", label: "" },
-      { id: "c6", source: "review-process", target: "fair-lending", label: "" },
-      { id: "c7", source: "review-process", target: "qm-compliance", label: "" },
-      { id: "c8", source: "trid-compliance", target: "findings-analysis", label: "" },
-      { id: "c9", source: "fair-lending", target: "findings-analysis", label: "" },
-      { id: "c10", source: "qm-compliance", target: "findings-analysis", label: "" },
-      { id: "c11", source: "findings-analysis", target: "violation-found", label: "" },
-      { id: "c12", source: "findings-analysis", target: "compliant", label: "" },
-      { id: "c13", source: "violation-found", target: "corrective-action", label: "" },
-      { id: "c14", source: "corrective-action", target: "remediation", label: "" },
-      { id: "c15", source: "remediation", target: "follow-up", label: "" },
-      { id: "c16", source: "follow-up", target: "audit-complete", label: "" },
-      { id: "c17", source: "compliant", target: "audit-complete", label: "" }
-    ]
-  },
-  'loan-servicing': {
-    id: "loan-servicing-004",
-    name: "Loan Servicing Operations",
-    description: "Post-closing loan servicing and portfolio management workflow",
-    nodes: [
-      { id: "loan-boarding", type: "status", label: "Loan Boarding" },
-      { id: "setup-servicing", type: "event", label: "Setup Servicing" },
-      { id: "payment-processing", type: "status", label: "Payment Processing" },
-      { id: "escrow-management", type: "event", label: "Escrow Management" },
-      { id: "customer-service", type: "event", label: "Customer Service" },
-      { id: "delinquency-mgmt", type: "status", label: "Delinquency Management" },
-      { id: "loss-mitigation", type: "event", label: "Loss Mitigation" },
-      { id: "modification", type: "event", label: "Loan Modification" },
-      { id: "foreclosure", type: "event", label: "Foreclosure Process" },
-      { id: "investor-reporting", type: "event", label: "Investor Reporting" },
-      { id: "quality-control", type: "event", label: "Quality Control" },
-      { id: "loan-sale", type: "event", label: "Loan Sale" },
-      { id: "payoff", type: "status", label: "Loan Payoff" },
-      { id: "portfolio-active", type: "status", label: "Active Portfolio" }
-    ],
-    edges: [
-      { id: "s1", source: "loan-boarding", target: "setup-servicing", label: "" },
-      { id: "s2", source: "setup-servicing", target: "payment-processing", label: "" },
-      { id: "s3", source: "payment-processing", target: "escrow-management", label: "" },
-      { id: "s4", source: "payment-processing", target: "customer-service", label: "" },
-      { id: "s5", source: "payment-processing", target: "portfolio-active", label: "" },
-      { id: "s6", source: "portfolio-active", target: "delinquency-mgmt", label: "" },
-      { id: "s7", source: "delinquency-mgmt", target: "loss-mitigation", label: "" },
-      { id: "s8", source: "loss-mitigation", target: "modification", label: "" },
-      { id: "s9", source: "loss-mitigation", target: "foreclosure", label: "" },
-      { id: "s10", source: "portfolio-active", target: "investor-reporting", label: "" },
-      { id: "s11", source: "portfolio-active", target: "quality-control", label: "" },
-      { id: "s12", source: "portfolio-active", target: "loan-sale", label: "" },
-      { id: "s13", source: "portfolio-active", target: "payoff", label: "" }
-    ]
   }
 };
 
@@ -424,7 +302,6 @@ export const analyzeGraphStructure = (workflowData: WorkflowData) => {
     edgeCount: edges.length
   };
 };
-
 
 // Advanced layout algorithm with clean edge patterns
 export const calculateSmartLayout = (
@@ -540,70 +417,63 @@ export const calculateSmartLayout = (
   };
 };
 
-// Clean edge routing with proper connection points and debugging
+// Clean edge routing with proper connection points and enhanced debugging
 export const generateSmartEdges = (
   workflowData: WorkflowData,
   layout: ReturnType<typeof calculateSmartLayout>
 ): Edge[] => {
   const { positions, levels } = layout;
-  console.log('Generating edges for workflow:', workflowData.edges.length, 'edges');
+  console.log('🔗 Generating edges for workflow:', workflowData.edges.length, 'edges');
+  
+  if (!workflowData.edges || workflowData.edges.length === 0) {
+    console.warn('⚠️ No edges found in workflow data!');
+    return [];
+  }
   
   const generatedEdges = workflowData.edges.map((edge, index) => {
     const sourcePos = positions.get(edge.source);
     const targetPos = positions.get(edge.target);
     
     if (!sourcePos || !targetPos) {
-      console.warn(`Edge ${edge.id} references non-existent nodes - source: ${edge.source}, target: ${edge.target}`);
+      console.error(`❌ Edge ${edge.id} references non-existent nodes - source: ${edge.source}, target: ${edge.target}`);
       return null;
     }
     
     const sourceLevel = levels.get(edge.source) || 0;
     const targetLevel = levels.get(edge.target) || 0;
-    const isBackwardFlow = targetLevel <= sourceLevel;
+    const isBackwardFlow = targetLevel <= sourceLevel && sourceLevel > 0;
     
-    console.log(`Edge ${edge.id}: ${edge.source} (level ${sourceLevel}) -> ${edge.target} (level ${targetLevel}), backward: ${isBackwardFlow}`);
+    console.log(`✅ Edge ${edge.id}: ${edge.source} (level ${sourceLevel}) -> ${edge.target} (level ${targetLevel}), backward: ${isBackwardFlow}`);
     
-    // Determine connection points and edge styling
-    let sourceHandle = Position.Right;
-    let targetHandle = Position.Left;
-    let edgeType = 'smoothstep';
-    
-    // Handle backward flows (loops) - connect from bottom to bottom
-    if (isBackwardFlow) {
-      sourceHandle = Position.Bottom;
-      targetHandle = Position.Bottom;
-      edgeType = 'smoothstep';
-    }
-    
-    // Special styling for different connection types
+    // Enhanced styling for visibility with bright colors
     const edgeStyle = {
-      stroke: isBackwardFlow ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-      strokeWidth: 3,
-      strokeDasharray: isBackwardFlow ? '8,8' : undefined,
+      stroke: isBackwardFlow ? '#ff0000' : '#0066ff', // Bright red for backward, bright blue for forward
+      strokeWidth: 4, // Increased stroke width
+      strokeDasharray: isBackwardFlow ? '10,10' : undefined,
     };
     
-    const generatedEdge = {
+    const generatedEdge: Edge = {
       id: edge.id || `edge-${index}`,
       source: edge.source,
       target: edge.target,
-      sourceHandle,
-      targetHandle,
-      type: edgeType,
-      animated: !isBackwardFlow,
+      type: 'smoothstep',
+      animated: true, // Make all edges animated for visibility
       style: edgeStyle,
       markerEnd: {
         type: 'arrowclosed',
-        color: isBackwardFlow ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-        width: 25,
-        height: 25,
+        color: isBackwardFlow ? '#ff0000' : '#0066ff',
+        width: 30,
+        height: 30,
       },
+      zIndex: 1000, // Ensure edges are above other elements
     };
     
-    console.log('Generated edge:', generatedEdge);
+    console.log('📍 Generated edge details:', generatedEdge);
     return generatedEdge;
   }).filter(Boolean) as Edge[];
   
-  console.log('Total generated edges:', generatedEdges.length);
+  console.log('🎯 Total generated edges:', generatedEdges.length);
+  console.log('📋 All edges:', generatedEdges);
   return generatedEdges;
 };
 
@@ -629,29 +499,11 @@ const WorkflowNode = ({ data }: NodeProps) => {
   
   const getNodeStyles = () => {
     switch (nodeData.type) {
-      case 'workflow':
-        return 'bg-workflow-canvas border-2 border-dashed border-workflow-border rounded-lg min-w-[900px] min-h-[500px] p-8 relative shadow-lg';
       case 'stage':
-        return 'bg-workflow-node-bg border-2 border-workflow-stage-border rounded-md p-6 min-w-[200px] min-h-[120px] cursor-pointer hover:shadow-lg transition-all duration-200 shadow-md';
-      case 'data':
-        let bgColor = 'bg-workflow-data-bg';
-        if (nodeData.color === 'yellow') {
-          bgColor = 'bg-workflow-data-bg';
-        }
-        return `${bgColor} border border-workflow-data-border px-4 py-2 text-sm font-medium cursor-pointer hover:shadow-md transition-shadow transform rotate-[-2deg] shadow-sm rounded`;
-      case 'pmf-tag':
-        return 'bg-workflow-pmf-bg text-workflow-pmf-text px-4 py-2 text-sm font-bold cursor-pointer hover:opacity-90 transition-opacity rounded shadow-md';
-      case 'process':
-        return 'bg-workflow-process-bg text-workflow-process-text border-workflow-stage-border border rounded px-3 py-1 text-sm font-medium cursor-pointer hover:shadow-md transition-shadow';
-      case 'entities-group':
-        return 'bg-workflow-node-bg border border-workflow-stage-border rounded-md p-6 min-w-[600px] cursor-pointer hover:shadow-lg transition-all duration-200 shadow-md';
+        return 'bg-blue-100 border-2 border-blue-300 rounded-md p-6 min-w-[200px] min-h-[120px] cursor-pointer hover:shadow-lg transition-all duration-200 shadow-md';
       default:
-        return 'bg-workflow-node-bg border-workflow-node-border border rounded p-3 cursor-pointer hover:shadow-md transition-shadow';
+        return 'bg-gray-100 border-gray-300 border rounded p-3 cursor-pointer hover:shadow-md transition-shadow min-w-[180px] min-h-[100px]';
     }
-  };
-
-  const getWrapperStyles = () => {
-    return 'border-4 border-workflow-border rounded-lg p-4 bg-workflow-canvas shadow-xl';
   };
 
   const handleClick = () => {
@@ -661,155 +513,33 @@ const WorkflowNode = ({ data }: NodeProps) => {
     console.log(`Clicked ${nodeData.type} node:`, nodeData.title);
   };
 
-  if (nodeData.type === 'pmf-tag') {
-    return (
-      <div className={getNodeStyles()} onClick={handleClick}>
-        <div className="font-bold">
-          {nodeData.title}
-        </div>
-      </div>
-    );
-  }
-
-  if (nodeData.type === 'data') {
-    return (
-      <div className={getNodeStyles()} onClick={handleClick}>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{nodeData.title}</span>
-          <span className="text-xs font-bold">⋮</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (nodeData.type === 'entities-group') {
-    const handleIconClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (nodeData.onToggleEntities) {
-        nodeData.onToggleEntities();
-      }
-    };
-
-    return (
-      <div className={getNodeStyles()} onClick={handleClick}>
-        <div className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <span 
-            className="cursor-pointer select-none text-lg leading-none"
-            onClick={handleIconClick}
-          >
-            {nodeData.entitiesExpanded ? '▼' : '▲'}
-          </span>
-          <span>Modified Data Entities</span>
-        </div>
-        {nodeData.entitiesExpanded && (
-          <div className="flex flex-wrap gap-3">
-            {nodeData.entities?.map((entity) => {
-              const bgColor = entity.color === 'yellow' ? 'bg-workflow-data-bg' : 'bg-muted';
-              const borderColor = entity.color === 'yellow' ? 'border-workflow-data-border' : 'border-border';
-              return (
-                <div
-                  key={entity.id}
-                  className={`${bgColor} ${borderColor} border px-3 py-2 text-sm font-medium transform rotate-[-2deg] shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
-                >
-                  <div className="flex items-center gap-1">
-                    <span>{entity.title}</span>
-                    <span className="text-xs font-bold">⋮</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (nodeData.type === 'workflow') {
-    return (
-      <div className={getWrapperStyles()}>
-        <div className={getNodeStyles()}>        
-          <div className="text-2xl font-bold text-foreground mb-2">
-            {nodeData.title}
-          </div>
-          
-          {nodeData.description && (
-            <div className="text-base text-muted-foreground mb-8">
-              {nodeData.description}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Stage and Enrich boxes will be positioned inside */}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const getNodeColor = () => {
-    switch (nodeData.type) {
-      case 'workflow':
-        return 'hsl(var(--primary))';
-      case 'stage':
-        return 'hsl(var(--secondary))';
-      case 'data':
-        return nodeData.color === 'yellow' ? 'hsl(var(--warning))' : 'hsl(var(--accent))';
-      case 'pmf-tag':
-        return 'hsl(var(--success))';
-      case 'process':
-        return 'hsl(var(--info))';
-      case 'entities-group':
-        return 'hsl(var(--muted))';
-      default:
-        return 'hsl(var(--background))';
-    }
-  };
-
   return (
     <div className={getNodeStyles()} onClick={handleClick}>
-      {/* Add connection handles for clean edge routing */}
+      {/* Connection handles for edge routing */}
       <Handle
         type="target"
         position={Position.Left}
         style={{
-          background: getNodeColor(),
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
-        }}
-      />
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        style={{
-          background: getNodeColor(),
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
+          background: '#3b82f6',
+          border: '2px solid #1d4ed8',
+          width: 16,
+          height: 16,
+          zIndex: 1001,
         }}
       />
       <Handle
         type="source"
         position={Position.Right}
         style={{
-          background: getNodeColor(),
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
-        }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{
-          background: getNodeColor(),
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
+          background: '#3b82f6',
+          border: '2px solid #1d4ed8',
+          width: 16,
+          height: 16,
+          zIndex: 1001,
         }}
       />
       
-      <div className="text-lg font-bold text-foreground text-center">
+      <div className="text-lg font-bold text-gray-800 text-center">
         {nodeData.title}
       </div>
     </div>
@@ -835,7 +565,7 @@ const CircularNode = ({ data }: NodeProps) => {
   };
 
   const getCircleStyles = () => {
-    return 'w-20 h-20 rounded-full bg-workflow-circular border-2 border-workflow-circular-border flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200';
+    return 'w-20 h-20 rounded-full bg-green-100 border-2 border-green-400 flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200';
   };
 
   return (
@@ -848,79 +578,27 @@ const CircularNode = ({ data }: NodeProps) => {
         type="target"
         position={Position.Left}
         style={{
-          background: 'hsl(var(--primary))',
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
-        }}
-      />
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        style={{
-          background: 'hsl(var(--primary))',
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
+          background: '#22c55e',
+          border: '2px solid #16a34a',
+          width: 16,
+          height: 16,
+          zIndex: 1001,
         }}
       />
       <Handle
         type="source"
         position={Position.Right}
         style={{
-          background: 'hsl(var(--primary))',
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
-        }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{
-          background: 'hsl(var(--primary))',
-          border: '2px solid hsl(var(--border))',
-          width: 12,
-          height: 12,
+          background: '#22c55e',
+          border: '2px solid #16a34a',
+          width: 16,
+          height: 16,
+          zIndex: 1001,
         }}
       />
       
-      <div className="text-xs font-bold text-center text-foreground px-2 leading-tight">
+      <div className="text-xs font-bold text-center text-gray-800 px-2 leading-tight">
         {nodeData.label}
-      </div>
-    </div>
-  );
-};
-
-// ============= HEADER COMPONENT (from WorkflowHeader.tsx) =============
-const WorkflowHeader = () => {
-  return (
-    <div>
-      <header className="bg-workflow-node-bg border-b border-workflow-border px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span className="font-semibold text-foreground">EBM Studio</span>
-        </div>
-
-        <div className="flex-1 max-w-md mx-8">
-          <Input 
-            placeholder="Search" 
-            className="w-full border-primary/50 focus:border-primary"
-          />
-        </div>
-
-        <div className="flex items-center gap-4">
-          <nav className="flex items-center gap-6 text-sm">
-            <a href="#" className="text-primary font-medium">Data Journeys</a>
-            <a href="#" className="text-muted-foreground hover:text-foreground">Lineage</a>
-            <a href="#" className="text-muted-foreground hover:text-foreground">FDE</a>
-            <a href="#" className="text-muted-foreground hover:text-foreground">Editor</a>
-          </nav>
-        </div>
-      </header>
-
-      <div className="bg-black text-white px-6 py-2 flex items-center justify-between">
-        <span className="text-sm font-medium">PMF</span>
-        <div className="text-sm">...</div>
       </div>
     </div>
   );
@@ -936,18 +614,15 @@ const WorkflowSelector = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSelect
   const workflows = [
     { id: 'ebm-version', name: 'EBM Version' },
     { id: 'mortgage-origination', name: 'Mortgage Origination' },
-    { id: 'risk-assessment', name: 'Risk Assessment' },
-    { id: 'compliance-audit', name: 'Compliance Audit' },
-    { id: 'loan-servicing', name: 'Loan Servicing' },
   ];
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Workflow:</span>
+      <span className="text-sm text-gray-600">Workflow:</span>
       <select 
         value={selectedWorkflow}
         onChange={(e) => onWorkflowSelect(e.target.value)}
-        className="px-3 py-1 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+        className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {workflows.map((workflow) => (
           <option key={workflow.id} value={workflow.id}>
@@ -1022,44 +697,6 @@ interface WorkflowManagerProps {
   onDataLoad?: (data: RawWorkflowData) => void;
   apiEndpoint?: string;
 }
-
-// Data loading utilities
-export const loadWorkflowFromAPI = async (endpoint: string): Promise<WorkflowData> => {
-  try {
-    console.log('Loading workflow from API:', endpoint);
-    const response = await fetch(endpoint);
-    
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-    }
-    
-    const rawData = await response.json();
-    console.log('Raw API response:', rawData);
-    
-    const transformedData = transformWorkflowData(rawData);
-    const validatedData = validateWorkflowData(transformedData);
-    
-    console.log('Final processed workflow data:', validatedData);
-    return validatedData;
-    
-  } catch (error) {
-    console.error('Error loading workflow from API:', error);
-    
-    // Return a default workflow if API fails
-    return validateWorkflowData({
-      id: 'api-error-fallback',
-      name: 'API Error - Fallback Workflow',
-      description: 'Failed to load workflow from API, showing fallback',
-      nodes: [
-        { id: 'error-start', type: 'status', label: 'Error' },
-        { id: 'error-retry', type: 'event', label: 'Retry' }
-      ],
-      edges: [
-        { id: 'error-edge', source: 'error-start', target: 'error-retry', label: 'Retry Loading' }
-      ]
-    });
-  }
-};
 
 export const processWorkflowData = (inputData: WorkflowData | RawWorkflowData): WorkflowData => {
   // Check if data is already in the correct format
@@ -1167,41 +804,11 @@ const WorkflowManager = ({
     setIsHorizontal(!isHorizontal);
   };
 
-  // Load data from API endpoint if provided
-  useEffect(() => {
-    if (apiEndpoint && !externalWorkflowData) {
-      const loadData = async () => {
-        try {
-          const data = await loadWorkflowFromAPI(apiEndpoint);
-          if (onDataLoad) {
-            onDataLoad(data);
-          }
-          console.log('Loaded workflow from API:', data);
-        } catch (error) {
-          console.error('Failed to load workflow from API:', error);
-        }
-      };
-      
-      loadData();
-    }
-  }, [apiEndpoint, externalWorkflowData, onDataLoad]);
-
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-background to-muted/30">
-      <WorkflowHeader />
-      
-      {/* Layout Controls */}
-      <div className="px-8 py-4 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+    <div className="h-screen w-full bg-gray-50">
+      {/* Simplified Header - Only Essential Controls */}
+      <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-foreground">
-              {currentWorkflowData.name}
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              {currentWorkflowData.description}
-            </span>
-          </div>
-          
           <div className="flex items-center gap-4">
             <WorkflowSelector 
               selectedWorkflow={selectedWorkflowId}
@@ -1212,111 +819,49 @@ const WorkflowManager = ({
               variant="outline"
               size="sm"
               onClick={toggleLayout}
-              className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200"
+              className="flex items-center gap-2"
             >
               <Layout className="h-4 w-4" />
-              {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+              {isHorizontal ? 'Vertical' : 'Horizontal'}
             </Button>
-            
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-              <span>{isHorizontal ? 'Horizontal Layout' : 'Vertical Layout'}</span>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Canvas - Full Width */}
-      <div className="h-[calc(100vh-200px)] w-full p-8">
-        <div className="h-full w-full relative overflow-hidden rounded-xl border border-border/50 shadow-2xl bg-gradient-to-br from-card to-background">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            fitView
-            className="w-full h-full"
-            defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
-            nodesDraggable={true}
-            nodesConnectable={true}
-            elementsSelectable={true}
-            minZoom={0.1}
-            maxZoom={2}
-          >
-            <Background 
-              color="hsl(var(--muted-foreground))" 
-              gap={24}
-              size={1}
-            />
-            <Controls 
-              className="bg-background/90 backdrop-blur-sm border border-border/50 shadow-lg rounded-lg"
-              showInteractive={false}
-            />
-          </ReactFlow>
-        </div>
+      {/* Full Screen Canvas */}
+      <div className="h-[calc(100vh-80px)] w-full">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          fitView
+          className="w-full h-full"
+          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+          nodesDraggable={true}
+          nodesConnectable={true}
+          elementsSelectable={true}
+          minZoom={0.1}
+          maxZoom={2}
+          connectionLineStyle={{ stroke: '#0066ff', strokeWidth: 3 }}
+          snapToGrid={true}
+          snapGrid={[15, 15]}
+        >
+          <Background 
+            color="#e5e7eb" 
+            gap={20}
+            size={1}
+          />
+          <Controls 
+            className="bg-white/90 border border-gray-300 shadow-lg rounded-lg"
+            showInteractive={false}
+          />
+        </ReactFlow>
       </div>
     </div>
   );
 };
 
 export default WorkflowManager;
-
-// ============= USAGE EXAMPLES =============
-/*
-// Example 1: Using with API endpoint
-<WorkflowManager 
-  apiEndpoint="/api/workflows/123"
-  onDataLoad={(data) => console.log('Loaded:', data)}
-/>
-
-// Example 2: Using with external data (backend format like your images)
-const backendData = {
-  id: "4bde0616-c450-42b2-9fab-8af9bcc66dfa",
-  name: "App Version",
-  description: "workflow definition for onboarding a version of an application into EBM",
-  edges: [
-    {id: "e1", source: "s1", target: "ev1", label: "Initial load"},
-    {id: "e2", source: "ev1", target: "s2", label: "Loaded"},
-    // ... more edges as shown in your images
-  ],
-  nodes: [
-    {id: "s1", type: "status", label: "Start"},
-    {id: "s2", type: "status", label: "Loaded"},
-    {id: "ev1", type: "event", label: "Load"},
-    // ... more nodes
-  ]
-};
-
-<WorkflowManager workflowData={backendData} />
-
-// Example 3: Using with alternative data format
-const alternativeFormat = {
-  workflow: {
-    workflow_id: "xyz-123",
-    title: "My Workflow",
-    summary: "A test workflow",
-    states: [
-      {node_id: "start", nodeType: "status", name: "Beginning"},
-      {node_id: "process", nodeType: "event", name: "Processing"}
-    ],
-    transitions: [
-      {edge_id: "t1", from: "start", to: "process", text: "Begin Process"}
-    ]
-  }
-};
-
-<WorkflowManager workflowData={alternativeFormat} />
-
-// Example 4: Handle data transformation manually
-const handleDataLoad = (rawData) => {
-  const processedData = processWorkflowData(rawData);
-  console.log('Processed workflow:', processedData);
-};
-
-<WorkflowManager 
-  onDataLoad={handleDataLoad}
-  apiEndpoint="/api/workflows/current"
-/>
-*/
