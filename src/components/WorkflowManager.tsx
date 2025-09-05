@@ -171,6 +171,32 @@ export interface LayoutConfig {
 
 // ============= MOCK DATA (from mock-data.ts) =============
 export const mockWorkflows: Record<string, WorkflowData> = {
+  'ebm-version': {
+    id: "f564cd67-2502-46a1-8494-4f61df616811",
+    name: "EBM Version",
+    description: "Workflow definition for grouping a set of applications",
+    nodes: [
+      { id: "s1", type: "status", label: "Start" },
+      { id: "s2", type: "status", label: "Created" },
+      { id: "ev1", type: "event", label: "Link" },
+      { id: "s3", type: "status", label: "Locked" },
+      { id: "ev2", type: "event", label: "Approve" },
+      { id: "s4", type: "status", label: "Deployed" },
+      { id: "ev3", type: "event", label: "Deploy" },
+      { id: "s5", type: "status", label: "Canceled" },
+      { id: "ev4", type: "event", label: "Cancel" }
+    ],
+    edges: [
+      { id: "e1", source: "s1", target: "ev1", label: "" },
+      { id: "e2", source: "ev1", target: "s2", label: "" },
+      { id: "e3", source: "s2", target: "ev2", label: "" },
+      { id: "e4", source: "ev2", target: "s3", label: "" },
+      { id: "e5", source: "s3", target: "ev3", label: "" },
+      { id: "e6", source: "ev3", target: "s4", label: "" },
+      { id: "e7", source: "s2", target: "ev4", label: "" },
+      { id: "e8", source: "ev4", target: "s5", label: "" }
+    ]
+  },
   'mortgage-origination': {
     id: "mortgage-origination-001",
     name: "Mortgage Origination Workflow",
@@ -334,7 +360,7 @@ export const mockWorkflows: Record<string, WorkflowData> = {
   }
 };
 
-export const defaultWorkflow = 'mortgage-origination';
+export const defaultWorkflow = 'ebm-version';
 
 // ============= ADVANCED LAYOUT UTILITIES =============
 export const defaultLayoutConfig: LayoutConfig = {
@@ -343,8 +369,8 @@ export const defaultLayoutConfig: LayoutConfig = {
   stageWidth: 180,
   stageHeight: 100,
   circleSize: 70,
-  padding: 100,
-  spacing: 250,
+  padding: 120,
+  spacing: 280,
   isHorizontal: true,
 };
 
@@ -399,7 +425,8 @@ export const analyzeGraphStructure = (workflowData: WorkflowData) => {
   };
 };
 
-// Advanced layout algorithm with horizontal/vertical support
+
+// Advanced layout algorithm with horizontal/vertical support and overlap prevention
 export const calculateSmartLayout = (
   workflowData: WorkflowData,
   config: LayoutConfig = defaultLayoutConfig
@@ -459,17 +486,24 @@ export const calculateSmartLayout = (
   const maxLevel = Math.max(...Array.from(levels.values()));
   const levelCount = maxLevel + 1;
   
-  // Calculate positions based on layout orientation with improved spacing
+  // Enhanced spacing calculations to prevent overlaps
+  const minNodeGap = 140; // Minimum gap between nodes
+  const minLevelGap = 320; // Minimum gap between levels
+  
+  // Calculate positions based on layout orientation with enhanced spacing
   if (isHorizontal) {
-    // Horizontal layout: levels go left to right with proper gaps
+    // Horizontal layout: levels go left to right with collision detection
     for (let level = 0; level <= maxLevel; level++) {
       const nodesInLevel = levelGroups.get(level) || [];
-      const x = padding + level * (spacing + 120); // Increased horizontal gap
+      const x = padding + level * minLevelGap;
       
-      // Center nodes vertically within the level with better spacing
-      const nodeSpacing = 120; // Increased vertical spacing between nodes
-      const totalHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * nodeSpacing;
-      const startY = padding + Math.max(0, (800 - totalHeight) / 2);
+      // Calculate optimal vertical spacing to prevent overlaps
+      const totalRequiredHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * minNodeGap;
+      const availableHeight = 900 - 2 * padding;
+      const nodeSpacing = Math.max(minNodeGap, (availableHeight - nodesInLevel.length * stageHeight) / Math.max(1, nodesInLevel.length - 1));
+      
+      // Center nodes vertically and distribute evenly
+      const startY = padding + Math.max(0, (availableHeight - totalRequiredHeight) / 2);
       
       nodesInLevel.forEach((nodeId, index) => {
         const y = startY + index * (stageHeight + nodeSpacing);
@@ -477,15 +511,18 @@ export const calculateSmartLayout = (
       });
     }
   } else {
-    // Vertical layout: levels go top to bottom with proper gaps
+    // Vertical layout: levels go top to bottom with collision detection
     for (let level = 0; level <= maxLevel; level++) {
       const nodesInLevel = levelGroups.get(level) || [];
-      const y = padding + level * (spacing + 80); // Increased vertical gap
+      const y = padding + level * minLevelGap;
       
-      // Center nodes horizontally within the level with better spacing
-      const nodeSpacing = 140; // Increased horizontal spacing between nodes
-      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * nodeSpacing;
-      const startX = padding + Math.max(0, (1400 - totalWidth) / 2);
+      // Calculate optimal horizontal spacing to prevent overlaps
+      const totalRequiredWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * minNodeGap;
+      const availableWidth = 1600 - 2 * padding;
+      const nodeSpacing = Math.max(minNodeGap, (availableWidth - nodesInLevel.length * stageWidth) / Math.max(1, nodesInLevel.length - 1));
+      
+      // Center nodes horizontally and distribute evenly
+      const startX = padding + Math.max(0, (availableWidth - totalRequiredWidth) / 2);
       
       nodesInLevel.forEach((nodeId, index) => {
         const x = startX + index * (stageWidth + nodeSpacing);
@@ -494,14 +531,14 @@ export const calculateSmartLayout = (
     }
   }
   
-  // Calculate canvas dimensions with better sizing
+  // Calculate canvas dimensions with proper margins
   let canvasWidth, canvasHeight;
   if (isHorizontal) {
-    canvasWidth = Math.max(levelCount * (spacing + 120) + 2 * padding, 1400);
-    canvasHeight = 900;
+    canvasWidth = Math.max(levelCount * minLevelGap + 2 * padding + stageWidth, 1600);
+    canvasHeight = 1000;
   } else {
-    canvasWidth = 1600;
-    canvasHeight = Math.max(levelCount * (spacing + 80) + 2 * padding, 900);
+    canvasWidth = 1800;
+    canvasHeight = Math.max(levelCount * minLevelGap + 2 * padding + stageHeight, 1000);
   }
   
   return {
@@ -787,7 +824,10 @@ interface WorkflowSelectorProps {
 const WorkflowSelector = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSelectorProps) => {
   const workflows = [
     { id: 'ebm-version', name: 'EBM Version' },
-    { id: 'test-workflow', name: 'Test Workflow' },
+    { id: 'mortgage-origination', name: 'Mortgage Origination' },
+    { id: 'risk-assessment', name: 'Risk Assessment' },
+    { id: 'compliance-audit', name: 'Compliance Audit' },
+    { id: 'loan-servicing', name: 'Loan Servicing' },
   ];
 
   return (
