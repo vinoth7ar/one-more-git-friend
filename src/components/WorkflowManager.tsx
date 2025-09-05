@@ -171,65 +171,180 @@ export interface LayoutConfig {
 
 // ============= MOCK DATA (from mock-data.ts) =============
 export const mockWorkflows: Record<string, WorkflowData> = {
-  'ebm-version': {
-    id: "f564cd67-2502-46a1-8494-4f61df616811",
-    name: "EBM Version",
-    description: "Workflow definition for grouping a set of applications",
+  'mortgage-origination': {
+    id: "mortgage-origination-001",
+    name: "Mortgage Origination Workflow",
+    description: "Complete mortgage loan origination process from application to funding",
     nodes: [
-      { id: "s1", type: "status", label: "Start" },
-      { id: "s2", type: "status", label: "Created" },
-      { id: "ev1", type: "event", label: "Link" },
-      { id: "s3", type: "status", label: "Locked" },
-      { id: "ev2", type: "event", label: "Approve" },
-      { id: "s4", type: "status", label: "Deployed" },
-      { id: "ev3", type: "event", label: "Deploy" },
-      { id: "s5", type: "status", label: "Canceled" },
-      { id: "ev4", type: "event", label: "Cancel" }
+      { id: "app-start", type: "status", label: "Application Start" },
+      { id: "collect-docs", type: "event", label: "Document Collection" },
+      { id: "doc-review", type: "status", label: "Document Review" },
+      { id: "credit-check", type: "event", label: "Credit Verification" },
+      { id: "income-verify", type: "event", label: "Income Verification" },
+      { id: "property-appraisal", type: "event", label: "Property Appraisal" },
+      { id: "underwriting", type: "status", label: "Underwriting Review" },
+      { id: "approval-decision", type: "event", label: "Approval Decision" },
+      { id: "approved", type: "status", label: "Approved" },
+      { id: "rejected", type: "status", label: "Rejected" },
+      { id: "conditions", type: "status", label: "Conditional Approval" },
+      { id: "fulfill-conditions", type: "event", label: "Fulfill Conditions" },
+      { id: "final-approval", type: "event", label: "Final Approval" },
+      { id: "closing", type: "status", label: "Closing Process" },
+      { id: "funding", type: "status", label: "Loan Funded" }
     ],
     edges: [
-      { id: "e1", source: "s1", target: "ev1", label: "Link" },
-      { id: "e2", source: "ev1", target: "s2", label: "Created" },
-      { id: "e3", source: "s2", target: "ev2", label: "Approve" },
-      { id: "e4", source: "ev2", target: "s3", label: "Locked" },
-      { id: "e5", source: "s3", target: "ev3", label: "Deploy EBM version" },
-      { id: "e6", source: "ev3", target: "s4", label: "Deployed" },
-      { id: "e7", source: "s3", target: "ev3", label: "Deploy EBM version" },
-      { id: "e8", source: "ev3", target: "s4", label: "Deployed" },
-      { id: "e9", source: "s4", target: "ev3", label: "Deploy EBM version" },
-      { id: "e10", source: "ev3", target: "s4", label: "Deployed" },
-      { id: "e11", source: "s2", target: "ev4", label: "Deploy EBM version" },
-      { id: "e12", source: "ev4", target: "s5", label: "Canceled" }
+      { id: "e1", source: "app-start", target: "collect-docs", label: "" },
+      { id: "e2", source: "collect-docs", target: "doc-review", label: "" },
+      { id: "e3", source: "doc-review", target: "credit-check", label: "" },
+      { id: "e4", source: "credit-check", target: "income-verify", label: "" },
+      { id: "e5", source: "income-verify", target: "property-appraisal", label: "" },
+      { id: "e6", source: "property-appraisal", target: "underwriting", label: "" },
+      { id: "e7", source: "underwriting", target: "approval-decision", label: "" },
+      { id: "e8", source: "approval-decision", target: "approved", label: "" },
+      { id: "e9", source: "approval-decision", target: "rejected", label: "" },
+      { id: "e10", source: "approval-decision", target: "conditions", label: "" },
+      { id: "e11", source: "conditions", target: "fulfill-conditions", label: "" },
+      { id: "e12", source: "fulfill-conditions", target: "final-approval", label: "" },
+      { id: "e13", source: "final-approval", target: "approved", label: "" },
+      { id: "e14", source: "approved", target: "closing", label: "" },
+      { id: "e15", source: "closing", target: "funding", label: "" }
     ]
   },
-  'test-workflow': {
-    id: "test-workflow-id",
-    name: "Test Workflow",
-    description: "Simple test workflow with two nodes",
+  'risk-assessment': {
+    id: "risk-assessment-002",
+    name: "Credit Risk Assessment",
+    description: "Comprehensive credit risk evaluation workflow for mortgage applications",
     nodes: [
-      { id: "test-event-1", type: "event", label: "Start" },
-      { id: "test-event-2", type: "event", label: "Finish" },
-      { id: "test-status-1", type: "status", label: "pending" },
-      { id: "test-status-2", type: "status", label: "completed" }
+      { id: "risk-start", type: "status", label: "Risk Assessment Start" },
+      { id: "data-collection", type: "event", label: "Data Collection" },
+      { id: "credit-score", type: "event", label: "Credit Score Analysis" },
+      { id: "debt-ratio", type: "event", label: "Debt-to-Income Ratio" },
+      { id: "employment-history", type: "event", label: "Employment History" },
+      { id: "asset-verification", type: "event", label: "Asset Verification" },
+      { id: "risk-modeling", type: "status", label: "Risk Modeling" },
+      { id: "fraud-check", type: "event", label: "Fraud Detection" },
+      { id: "compliance-check", type: "event", label: "Compliance Review" },
+      { id: "risk-score", type: "status", label: "Risk Score Generated" },
+      { id: "low-risk", type: "status", label: "Low Risk" },
+      { id: "medium-risk", type: "status", label: "Medium Risk" },
+      { id: "high-risk", type: "status", label: "High Risk" },
+      { id: "manual-review", type: "event", label: "Manual Review Required" },
+      { id: "risk-approved", type: "status", label: "Risk Approved" },
+      { id: "risk-declined", type: "status", label: "Risk Declined" }
     ],
     edges: [
-      { id: "test-edge-1", source: "test-event-1", target: "test-status-1", label: "" },
-      { id: "test-edge-2", source: "test-status-1", target: "test-event-2", label: "" },
-      { id: "test-edge-3", source: "test-event-2", target: "test-status-2", label: "" }
+      { id: "r1", source: "risk-start", target: "data-collection", label: "" },
+      { id: "r2", source: "data-collection", target: "credit-score", label: "" },
+      { id: "r3", source: "data-collection", target: "debt-ratio", label: "" },
+      { id: "r4", source: "data-collection", target: "employment-history", label: "" },
+      { id: "r5", source: "data-collection", target: "asset-verification", label: "" },
+      { id: "r6", source: "credit-score", target: "risk-modeling", label: "" },
+      { id: "r7", source: "debt-ratio", target: "risk-modeling", label: "" },
+      { id: "r8", source: "employment-history", target: "risk-modeling", label: "" },
+      { id: "r9", source: "asset-verification", target: "risk-modeling", label: "" },
+      { id: "r10", source: "risk-modeling", target: "fraud-check", label: "" },
+      { id: "r11", source: "fraud-check", target: "compliance-check", label: "" },
+      { id: "r12", source: "compliance-check", target: "risk-score", label: "" },
+      { id: "r13", source: "risk-score", target: "low-risk", label: "" },
+      { id: "r14", source: "risk-score", target: "medium-risk", label: "" },
+      { id: "r15", source: "risk-score", target: "high-risk", label: "" },
+      { id: "r16", source: "medium-risk", target: "manual-review", label: "" },
+      { id: "r17", source: "high-risk", target: "manual-review", label: "" },
+      { id: "r18", source: "low-risk", target: "risk-approved", label: "" },
+      { id: "r19", source: "manual-review", target: "risk-approved", label: "" },
+      { id: "r20", source: "manual-review", target: "risk-declined", label: "" }
+    ]
+  },
+  'compliance-audit': {
+    id: "compliance-audit-003",
+    name: "Regulatory Compliance Audit",
+    description: "Systematic compliance audit workflow for mortgage operations",
+    nodes: [
+      { id: "audit-init", type: "status", label: "Audit Initiated" },
+      { id: "scope-define", type: "event", label: "Define Scope" },
+      { id: "document-request", type: "event", label: "Document Request" },
+      { id: "loan-sampling", type: "event", label: "Loan File Sampling" },
+      { id: "review-process", type: "status", label: "Review Process" },
+      { id: "trid-compliance", type: "event", label: "TRID Compliance Check" },
+      { id: "fair-lending", type: "event", label: "Fair Lending Review" },
+      { id: "qm-compliance", type: "event", label: "QM Rule Compliance" },
+      { id: "findings-analysis", type: "status", label: "Findings Analysis" },
+      { id: "violation-found", type: "status", label: "Violations Found" },
+      { id: "compliant", type: "status", label: "Fully Compliant" },
+      { id: "corrective-action", type: "event", label: "Corrective Action Plan" },
+      { id: "remediation", type: "event", label: "Remediation Process" },
+      { id: "follow-up", type: "event", label: "Follow-up Review" },
+      { id: "audit-complete", type: "status", label: "Audit Complete" }
+    ],
+    edges: [
+      { id: "c1", source: "audit-init", target: "scope-define", label: "" },
+      { id: "c2", source: "scope-define", target: "document-request", label: "" },
+      { id: "c3", source: "document-request", target: "loan-sampling", label: "" },
+      { id: "c4", source: "loan-sampling", target: "review-process", label: "" },
+      { id: "c5", source: "review-process", target: "trid-compliance", label: "" },
+      { id: "c6", source: "review-process", target: "fair-lending", label: "" },
+      { id: "c7", source: "review-process", target: "qm-compliance", label: "" },
+      { id: "c8", source: "trid-compliance", target: "findings-analysis", label: "" },
+      { id: "c9", source: "fair-lending", target: "findings-analysis", label: "" },
+      { id: "c10", source: "qm-compliance", target: "findings-analysis", label: "" },
+      { id: "c11", source: "findings-analysis", target: "violation-found", label: "" },
+      { id: "c12", source: "findings-analysis", target: "compliant", label: "" },
+      { id: "c13", source: "violation-found", target: "corrective-action", label: "" },
+      { id: "c14", source: "corrective-action", target: "remediation", label: "" },
+      { id: "c15", source: "remediation", target: "follow-up", label: "" },
+      { id: "c16", source: "follow-up", target: "audit-complete", label: "" },
+      { id: "c17", source: "compliant", target: "audit-complete", label: "" }
+    ]
+  },
+  'loan-servicing': {
+    id: "loan-servicing-004",
+    name: "Loan Servicing Operations",
+    description: "Post-closing loan servicing and portfolio management workflow",
+    nodes: [
+      { id: "loan-boarding", type: "status", label: "Loan Boarding" },
+      { id: "setup-servicing", type: "event", label: "Setup Servicing" },
+      { id: "payment-processing", type: "status", label: "Payment Processing" },
+      { id: "escrow-management", type: "event", label: "Escrow Management" },
+      { id: "customer-service", type: "event", label: "Customer Service" },
+      { id: "delinquency-mgmt", type: "status", label: "Delinquency Management" },
+      { id: "loss-mitigation", type: "event", label: "Loss Mitigation" },
+      { id: "modification", type: "event", label: "Loan Modification" },
+      { id: "foreclosure", type: "event", label: "Foreclosure Process" },
+      { id: "investor-reporting", type: "event", label: "Investor Reporting" },
+      { id: "quality-control", type: "event", label: "Quality Control" },
+      { id: "loan-sale", type: "event", label: "Loan Sale" },
+      { id: "payoff", type: "status", label: "Loan Payoff" },
+      { id: "portfolio-active", type: "status", label: "Active Portfolio" }
+    ],
+    edges: [
+      { id: "s1", source: "loan-boarding", target: "setup-servicing", label: "" },
+      { id: "s2", source: "setup-servicing", target: "payment-processing", label: "" },
+      { id: "s3", source: "payment-processing", target: "escrow-management", label: "" },
+      { id: "s4", source: "payment-processing", target: "customer-service", label: "" },
+      { id: "s5", source: "payment-processing", target: "portfolio-active", label: "" },
+      { id: "s6", source: "portfolio-active", target: "delinquency-mgmt", label: "" },
+      { id: "s7", source: "delinquency-mgmt", target: "loss-mitigation", label: "" },
+      { id: "s8", source: "loss-mitigation", target: "modification", label: "" },
+      { id: "s9", source: "loss-mitigation", target: "foreclosure", label: "" },
+      { id: "s10", source: "portfolio-active", target: "investor-reporting", label: "" },
+      { id: "s11", source: "portfolio-active", target: "quality-control", label: "" },
+      { id: "s12", source: "portfolio-active", target: "loan-sale", label: "" },
+      { id: "s13", source: "portfolio-active", target: "payoff", label: "" }
     ]
   }
 };
 
-export const defaultWorkflow = 'ebm-version';
+export const defaultWorkflow = 'mortgage-origination';
 
 // ============= ADVANCED LAYOUT UTILITIES =============
 export const defaultLayoutConfig: LayoutConfig = {
-  workflowWidth: 1400,
-  workflowHeight: 800,
-  stageWidth: 160,
-  stageHeight: 80,
-  circleSize: 60,
-  padding: 80,
-  spacing: 200,
+  workflowWidth: 1600,
+  workflowHeight: 900,
+  stageWidth: 180,
+  stageHeight: 100,
+  circleSize: 70,
+  padding: 100,
+  spacing: 250,
   isHorizontal: true,
 };
 
@@ -344,47 +459,49 @@ export const calculateSmartLayout = (
   const maxLevel = Math.max(...Array.from(levels.values()));
   const levelCount = maxLevel + 1;
   
-  // Calculate positions based on layout orientation
+  // Calculate positions based on layout orientation with improved spacing
   if (isHorizontal) {
-    // Horizontal layout: levels go left to right
+    // Horizontal layout: levels go left to right with proper gaps
     for (let level = 0; level <= maxLevel; level++) {
       const nodesInLevel = levelGroups.get(level) || [];
-      const x = padding + level * spacing;
+      const x = padding + level * (spacing + 120); // Increased horizontal gap
       
-      // Center nodes vertically within the level
-      const totalHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * 60;
-      const startY = padding + (800 - totalHeight) / 2; // Center in canvas
+      // Center nodes vertically within the level with better spacing
+      const nodeSpacing = 120; // Increased vertical spacing between nodes
+      const totalHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * nodeSpacing;
+      const startY = padding + Math.max(0, (800 - totalHeight) / 2);
       
       nodesInLevel.forEach((nodeId, index) => {
-        const y = startY + index * (stageHeight + 60);
+        const y = startY + index * (stageHeight + nodeSpacing);
         positions.set(nodeId, { x, y, level });
       });
     }
   } else {
-    // Vertical layout: levels go top to bottom
+    // Vertical layout: levels go top to bottom with proper gaps
     for (let level = 0; level <= maxLevel; level++) {
       const nodesInLevel = levelGroups.get(level) || [];
-      const y = padding + level * spacing;
+      const y = padding + level * (spacing + 80); // Increased vertical gap
       
-      // Center nodes horizontally within the level
-      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * 60;
-      const startX = padding + (1200 - totalWidth) / 2; // Center in canvas
+      // Center nodes horizontally within the level with better spacing
+      const nodeSpacing = 140; // Increased horizontal spacing between nodes
+      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * nodeSpacing;
+      const startX = padding + Math.max(0, (1400 - totalWidth) / 2);
       
       nodesInLevel.forEach((nodeId, index) => {
-        const x = startX + index * (stageWidth + 60);
+        const x = startX + index * (stageWidth + nodeSpacing);
         positions.set(nodeId, { x, y, level });
       });
     }
   }
   
-  // Calculate canvas dimensions
+  // Calculate canvas dimensions with better sizing
   let canvasWidth, canvasHeight;
   if (isHorizontal) {
-    canvasWidth = Math.max(levelCount * spacing + 2 * padding, 1200);
-    canvasHeight = 800;
+    canvasWidth = Math.max(levelCount * (spacing + 120) + 2 * padding, 1400);
+    canvasHeight = 900;
   } else {
-    canvasWidth = 1200;
-    canvasHeight = Math.max(levelCount * spacing + 2 * padding, 800);
+    canvasWidth = 1600;
+    canvasHeight = Math.max(levelCount * (spacing + 80) + 2 * padding, 900);
   }
   
   return {
@@ -398,7 +515,7 @@ export const calculateSmartLayout = (
   };
 };
 
-// Smart edge routing to avoid overlaps
+// Smart edge routing to avoid overlaps (no labels for cleaner look)
 export const generateSmartEdges = (
   workflowData: WorkflowData,
   layout: ReturnType<typeof calculateSmartLayout>
@@ -430,22 +547,11 @@ export const generateSmartEdges = (
       target: edge.target,
       type: edgeType,
       animated,
-      label: edge.label,
       style: {
         stroke: 'hsl(var(--primary))',
         strokeWidth: 2,
       },
-      labelStyle: {
-        fill: 'hsl(var(--foreground))',
-        fontWeight: 600,
-        fontSize: 12,
-      },
-      labelBgStyle: {
-        fill: 'hsl(var(--background))',
-        fillOpacity: 0.9,
-        rx: 4,
-        ry: 4,
-      },
+      // Remove labels for cleaner appearance
     };
   }).filter(Boolean) as Edge[];
 };
