@@ -16,6 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RotateCcw, Layout } from 'lucide-react';
 
 // ============= TYPES (from types.ts) =============
 export interface WorkflowNode {
@@ -164,7 +165,8 @@ export interface LayoutConfig {
   stageHeight: number;
   circleSize: number;
   padding: number;
-  verticalSpacing: number;
+  spacing: number;
+  isHorizontal: boolean;
 }
 
 // ============= MOCK DATA (from mock-data.ts) =============
@@ -221,13 +223,14 @@ export const defaultWorkflow = 'ebm-version';
 
 // ============= ADVANCED LAYOUT UTILITIES =============
 export const defaultLayoutConfig: LayoutConfig = {
-  workflowWidth: 1200,
+  workflowWidth: 1400,
   workflowHeight: 800,
-  stageWidth: 200,
-  stageHeight: 100,
-  circleSize: 80,
-  padding: 50,
-  verticalSpacing: 150,
+  stageWidth: 160,
+  stageHeight: 80,
+  circleSize: 60,
+  padding: 80,
+  spacing: 200,
+  isHorizontal: true,
 };
 
 // Graph analysis utilities
@@ -281,14 +284,14 @@ export const analyzeGraphStructure = (workflowData: WorkflowData) => {
   };
 };
 
-// Hierarchical layout algorithm
-export const calculateHierarchicalLayout = (
+// Advanced layout algorithm with horizontal/vertical support
+export const calculateSmartLayout = (
   workflowData: WorkflowData,
   config: LayoutConfig = defaultLayoutConfig
 ) => {
   const analysis = analyzeGraphStructure(workflowData);
   const { nodes, outgoing, startNodes } = analysis;
-  const { padding, stageWidth, stageHeight, circleSize } = config;
+  const { padding, stageWidth, stageHeight, spacing, isHorizontal } = config;
   
   // Calculate levels using BFS
   const levels = new Map<string, number>();
@@ -341,32 +344,48 @@ export const calculateHierarchicalLayout = (
   const maxLevel = Math.max(...Array.from(levels.values()));
   const levelCount = maxLevel + 1;
   
-  // Calculate positions
-  let maxWidth = 0;
-  const levelPositions = new Map<number, number>();
-  
-  // Calculate level positions and widths
-  for (let level = 0; level <= maxLevel; level++) {
-    const nodesInLevel = levelGroups.get(level) || [];
-    const levelWidth = nodesInLevel.length * (stageWidth + 100) - 100;
-    maxWidth = Math.max(maxWidth, levelWidth);
-    
-    const y = padding + level * (stageHeight + config.verticalSpacing);
-    levelPositions.set(level, y);
-    
-    // Position nodes in this level
-    nodesInLevel.forEach((nodeId, index) => {
-      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * 100;
-      const startX = padding + (maxWidth - totalWidth) / 2;
-      const x = startX + index * (stageWidth + 100);
+  // Calculate positions based on layout orientation
+  if (isHorizontal) {
+    // Horizontal layout: levels go left to right
+    for (let level = 0; level <= maxLevel; level++) {
+      const nodesInLevel = levelGroups.get(level) || [];
+      const x = padding + level * spacing;
       
-      positions.set(nodeId, { x, y, level });
-    });
+      // Center nodes vertically within the level
+      const totalHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * 60;
+      const startY = padding + (800 - totalHeight) / 2; // Center in canvas
+      
+      nodesInLevel.forEach((nodeId, index) => {
+        const y = startY + index * (stageHeight + 60);
+        positions.set(nodeId, { x, y, level });
+      });
+    }
+  } else {
+    // Vertical layout: levels go top to bottom
+    for (let level = 0; level <= maxLevel; level++) {
+      const nodesInLevel = levelGroups.get(level) || [];
+      const y = padding + level * spacing;
+      
+      // Center nodes horizontally within the level
+      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * 60;
+      const startX = padding + (1200 - totalWidth) / 2; // Center in canvas
+      
+      nodesInLevel.forEach((nodeId, index) => {
+        const x = startX + index * (stageWidth + 60);
+        positions.set(nodeId, { x, y, level });
+      });
+    }
   }
   
-  // Calculate final canvas dimensions
-  const canvasWidth = Math.max(maxWidth + 2 * padding, 800);
-  const canvasHeight = levelCount * (stageHeight + config.verticalSpacing) + padding;
+  // Calculate canvas dimensions
+  let canvasWidth, canvasHeight;
+  if (isHorizontal) {
+    canvasWidth = Math.max(levelCount * spacing + 2 * padding, 1200);
+    canvasHeight = 800;
+  } else {
+    canvasWidth = 1200;
+    canvasHeight = Math.max(levelCount * spacing + 2 * padding, 800);
+  }
   
   return {
     positions,
@@ -382,7 +401,7 @@ export const calculateHierarchicalLayout = (
 // Smart edge routing to avoid overlaps
 export const generateSmartEdges = (
   workflowData: WorkflowData,
-  layout: ReturnType<typeof calculateHierarchicalLayout>
+  layout: ReturnType<typeof calculateSmartLayout>
 ): Edge[] => {
   const { positions } = layout;
   
@@ -413,17 +432,19 @@ export const generateSmartEdges = (
       animated,
       label: edge.label,
       style: {
-        stroke: '#666',
+        stroke: 'hsl(var(--primary))',
         strokeWidth: 2,
       },
       labelStyle: {
-        fill: '#666',
+        fill: 'hsl(var(--foreground))',
         fontWeight: 600,
         fontSize: 12,
       },
       labelBgStyle: {
-        fill: 'white',
-        fillOpacity: 0.8,
+        fill: 'hsl(var(--background))',
+        fillOpacity: 0.9,
+        rx: 4,
+        ry: 4,
       },
     };
   }).filter(Boolean) as Edge[];
@@ -651,68 +672,32 @@ const WorkflowHeader = () => {
   );
 };
 
-// ============= SIDEBAR COMPONENT (from WorkflowSidebar.tsx) =============
-interface WorkflowSidebarProps {
+// ============= WORKFLOW SELECTOR COMPONENT =============
+interface WorkflowSelectorProps {
   selectedWorkflow: string;
   onWorkflowSelect: (workflowId: string) => void;
 }
 
-const WorkflowSidebar = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSidebarProps) => {
-  const legendItems = [
-    { color: 'bg-primary', label: 'Application' },
-    { color: 'bg-workflow-stage-bg border border-workflow-stage-border', label: 'Workflow' },
-    { color: 'bg-muted', label: 'Business Goal' },
-    { color: 'bg-workflow-data-bg border border-workflow-data-border', label: 'Data Entity' },
-  ];
-
+const WorkflowSelector = ({ selectedWorkflow, onWorkflowSelect }: WorkflowSelectorProps) => {
   const workflows = [
     { id: 'ebm-version', name: 'EBM Version' },
     { id: 'test-workflow', name: 'Test Workflow' },
   ];
 
   return (
-    <div className="w-80 bg-workflow-bg border-l border-workflow-border p-4 space-y-4">
-      <div className="p-4 bg-card border border-border rounded-lg">
-        <h3 className="text-sm font-medium mb-3">Customize View</h3>
-        <label className="flex items-center gap-2 text-xs">
-          <input type="checkbox" defaultChecked className="rounded" />
-          Expand all data entities
-        </label>
-      </div>
-
-      <div className="p-4 bg-card border border-border rounded-lg">
-        <h3 className="text-sm font-medium mb-3">Legend</h3>
-        <div className="space-y-2">
-          {legendItems.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded ${item.color}`} />
-              <span className="text-xs text-muted-foreground">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-4 bg-card border border-border rounded-lg">
-        <h3 className="text-sm font-medium mb-3">Other Workflows</h3>
-        <p className="text-xs text-muted-foreground mb-3">
-          Choose a different workflow to visualize
-        </p>
-        <div className="space-y-2">
-          {workflows.map((workflow) => (
-            <div
-              key={workflow.id}
-              className={`bg-workflow-stage-bg border rounded p-3 text-xs font-medium text-center cursor-pointer transition-colors ${
-                selectedWorkflow === workflow.id 
-                  ? 'border-primary bg-primary/10 text-primary' 
-                  : 'border-workflow-stage-border hover:bg-workflow-stage-border/20'
-              }`}
-              onClick={() => onWorkflowSelect(workflow.id)}
-            >
-              {workflow.name}
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-muted-foreground">Workflow:</span>
+      <select 
+        value={selectedWorkflow}
+        onChange={(e) => onWorkflowSelect(e.target.value)}
+        className="px-3 py-1 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+      >
+        {workflows.map((workflow) => (
+          <option key={workflow.id} value={workflow.id}>
+            {workflow.name}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };
@@ -724,7 +709,7 @@ export const createAdvancedNodes = (
 ): Node[] => {
   console.log('Creating nodes with hierarchical layout for:', workflowData);
   
-  const layout = calculateHierarchicalLayout(workflowData, config);
+  const layout = calculateSmartLayout(workflowData, config);
   const { positions, canvasWidth, canvasHeight, analysis } = layout;
   
   const nodes: Node[] = [];
@@ -855,7 +840,13 @@ const WorkflowManager = ({
   onDataLoad
 }: WorkflowManagerProps = {}) => {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(externalWorkflowId || defaultWorkflow);
-  const [entitiesExpanded, setEntitiesExpanded] = useState(false);
+  const [isHorizontal, setIsHorizontal] = useState(true);
+  
+  // Dynamic layout config based on orientation
+  const currentLayoutConfig = useMemo(() => ({
+    ...layoutConfig,
+    isHorizontal
+  }), [layoutConfig, isHorizontal]);
   
   // Memoize the processed workflow data to prevent infinite re-renders
   const currentWorkflowData = useMemo(() => {
@@ -867,15 +858,15 @@ const WorkflowManager = ({
     return processWorkflowData(rawData);
   }, [externalWorkflowData, selectedWorkflowId]);
   
-  // Memoize initial nodes and edges using new hierarchical layout
+  // Memoize initial nodes and edges using smart layout
   const initialNodes = useMemo(() => {
-    return createAdvancedNodes(currentWorkflowData, layoutConfig);
-  }, [currentWorkflowData, layoutConfig]);
+    return createAdvancedNodes(currentWorkflowData, currentLayoutConfig);
+  }, [currentWorkflowData, currentLayoutConfig]);
   
   const initialEdges = useMemo(() => {
-    const layout = calculateHierarchicalLayout(currentWorkflowData, layoutConfig);
+    const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
     return generateSmartEdges(currentWorkflowData, layout);
-  }, [currentWorkflowData, layoutConfig]);
+  }, [currentWorkflowData, currentLayoutConfig]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -892,24 +883,27 @@ const WorkflowManager = ({
     } else {
       if (mockWorkflows[workflowId]) {
         setSelectedWorkflowId(workflowId);
-        setEntitiesExpanded(false);
       }
     }
   };
 
-  // Update nodes when workflow data changes
+  // Update nodes when workflow data or layout changes
   useEffect(() => {
-    const layout = calculateHierarchicalLayout(currentWorkflowData, layoutConfig);
-    const updatedNodes = createAdvancedNodes(currentWorkflowData, layoutConfig);
+    const updatedNodes = createAdvancedNodes(currentWorkflowData, currentLayoutConfig);
     setNodes(updatedNodes);
-  }, [currentWorkflowData, layoutConfig, setNodes]);
+  }, [currentWorkflowData, currentLayoutConfig, setNodes]);
 
-  // Update edges when workflow data changes
+  // Update edges when workflow data or layout changes
   useEffect(() => {
-    const layout = calculateHierarchicalLayout(currentWorkflowData, layoutConfig);
+    const layout = calculateSmartLayout(currentWorkflowData, currentLayoutConfig);
     const updatedEdges = generateSmartEdges(currentWorkflowData, layout);
     setEdges(updatedEdges);
-  }, [currentWorkflowData, layoutConfig, setEdges]);
+  }, [currentWorkflowData, currentLayoutConfig, setEdges]);
+
+  // Toggle layout orientation
+  const toggleLayout = () => {
+    setIsHorizontal(!isHorizontal);
+  };
 
   // Load data from API endpoint if provided
   useEffect(() => {
@@ -931,12 +925,48 @@ const WorkflowManager = ({
   }, [apiEndpoint, externalWorkflowData, onDataLoad]);
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-screen w-full bg-gradient-to-br from-background to-muted/30">
       <WorkflowHeader />
       
-      <div className="flex h-[calc(100vh-120px)] w-full bg-workflow-bg">
-        {/* Main Canvas */}
-        <div className="flex-1 h-full p-8">
+      {/* Layout Controls */}
+      <div className="px-8 py-4 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold text-foreground">
+              {currentWorkflowData.name}
+            </h2>
+            <span className="text-sm text-muted-foreground">
+              {currentWorkflowData.description}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <WorkflowSelector 
+              selectedWorkflow={selectedWorkflowId}
+              onWorkflowSelect={handleWorkflowSelect}
+            />
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleLayout}
+              className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200"
+            >
+              <Layout className="h-4 w-4" />
+              {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+            </Button>
+            
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+              <span>{isHorizontal ? 'Horizontal Layout' : 'Vertical Layout'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Canvas - Full Width */}
+      <div className="h-[calc(100vh-200px)] w-full p-8">
+        <div className="h-full w-full relative overflow-hidden rounded-xl border border-border/50 shadow-2xl bg-gradient-to-br from-card to-background">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -945,26 +975,25 @@ const WorkflowManager = ({
             onConnect={onConnect}
             nodeTypes={nodeTypes}
             fitView
-            className="bg-workflow-canvas rounded-lg"
-            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+            className="w-full h-full"
+            defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
             nodesDraggable={true}
             nodesConnectable={true}
             elementsSelectable={true}
+            minZoom={0.1}
+            maxZoom={2}
           >
             <Background 
-              color="#999999" 
-              gap={20}
-              size={2}
+              color="hsl(var(--muted-foreground))" 
+              gap={24}
+              size={1}
             />
-            <Controls className="bg-white border border-gray-300 shadow-lg rounded-lg" />
+            <Controls 
+              className="bg-background/90 backdrop-blur-sm border border-border/50 shadow-lg rounded-lg"
+              showInteractive={false}
+            />
           </ReactFlow>
         </div>
-
-        {/* Sidebar */}
-        <WorkflowSidebar 
-          selectedWorkflow={selectedWorkflowId}
-          onWorkflowSelect={handleWorkflowSelect}
-        />
       </div>
     </div>
   );
