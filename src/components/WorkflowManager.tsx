@@ -148,9 +148,21 @@ export const defaultWorkflow = 'ebm-version';
  */
 export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData => {
   console.log('🔄 Transforming raw workflow data:', rawData);
+  console.log('🏗️ Raw data structure keys:', Object.keys(rawData));
   
   // Extract workflow data from various possible structures
   const workflowData = rawData.workflow || rawData.data || rawData;
+  console.log('🏗️ Workflow data structure keys:', Object.keys(workflowData));
+  console.log('🏗️ Checking data fields:', {
+    hasNodes: !!workflowData.nodes,
+    hasVertices: !!workflowData.vertices, 
+    hasStates: !!workflowData.states,
+    hasSteps: !!workflowData.steps,
+    hasEdges: !!workflowData.edges,
+    hasConnections: !!workflowData.connections,
+    hasTransitions: !!workflowData.transitions,
+    hasLinks: !!workflowData.links
+  });
   
   // Extract basic properties with multiple fallback options
   const id = workflowData.id || 
@@ -207,25 +219,41 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
 
   // Try to find nodes in various possible field names
   if (workflowData.nodes) {
+    console.log('🔵 Found nodes field, raw data:', workflowData.nodes);
     nodes = transformNodes(workflowData.nodes);
   } else if (workflowData.vertices) {
+    console.log('🔵 Found vertices field, raw data:', workflowData.vertices);
     nodes = transformNodes(workflowData.vertices);
   } else if (workflowData.states) {
+    console.log('🔵 Found states field, raw data:', workflowData.states);
     nodes = transformNodes(workflowData.states);
   } else if (workflowData.steps) {
+    console.log('🔵 Found steps field, raw data:', workflowData.steps);
     nodes = transformNodes(workflowData.steps);
+  } else {
+    console.warn('⚠️ No node data found in any expected field');
   }
 
   // Try to find edges in various possible field names
   if (workflowData.edges) {
+    console.log('🔗 Found edges field, raw data:', workflowData.edges);
     edges = transformEdges(workflowData.edges);
   } else if (workflowData.connections) {
+    console.log('🔗 Found connections field, raw data:', workflowData.connections);
     edges = transformEdges(workflowData.connections);
   } else if (workflowData.transitions) {
+    console.log('🔗 Found transitions field, raw data:', workflowData.transitions);
     edges = transformEdges(workflowData.transitions);
   } else if (workflowData.links) {
+    console.log('🔗 Found links field, raw data:', workflowData.links);
     edges = transformEdges(workflowData.links);
+  } else {
+    console.warn('⚠️ No edge data found in any expected field');
   }
+
+  console.log('✅ Transformed workflow data:', { id, name, description, nodes: nodes.length, edges: edges.length });
+  console.log('🔵 Final nodes:', nodes);
+  console.log('🔗 Final edges:', edges);
 
   console.log('✅ Transformed workflow data:', { id, name, description, nodes: nodes.length, edges: edges.length });
 
@@ -237,14 +265,18 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
  * Ensures we always have a workable workflow even with incomplete data
  */
 export const validateWorkflowData = (data: WorkflowData): WorkflowData => {
+  console.log('🔍 Validating workflow data:', data);
   const validatedData = { ...data };
   
   // Ensure we have at least some nodes for a meaningful workflow
   if (!validatedData.nodes || validatedData.nodes.length === 0) {
+    console.warn('⚠️ No nodes found, creating default Start/End nodes');
     validatedData.nodes = [
       { id: 'default-start', type: 'status', label: 'Start' },
       { id: 'default-end', type: 'status', label: 'End' }
     ];
+  } else {
+    console.log(`✅ Found ${validatedData.nodes.length} nodes to validate`);
   }
   
   // Initialize edges array if missing
@@ -743,7 +775,12 @@ const nodeTypes = {
  * ============= MAIN WORKFLOW MANAGER COMPONENT =============
  * The primary component that orchestrates the entire workflow visualization
  */
-export const WorkflowManager = () => {
+interface WorkflowManagerProps {
+  workflowData?: RawWorkflowData;  // Optional external data
+  useExternalData?: boolean;       // Flag to use external vs mock data
+}
+
+export const WorkflowManager = ({ workflowData, useExternalData = false }: WorkflowManagerProps = {}) => {
   // ========== STATE MANAGEMENT ==========
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(defaultWorkflow);
   const [isHorizontal, setIsHorizontal] = useState(true);
@@ -758,20 +795,25 @@ export const WorkflowManager = () => {
    * This runs whenever the selected workflow or layout orientation changes
    */
   const currentWorkflowData = useMemo(() => {
-    console.log('🔄 Processing workflow data for:', selectedWorkflow);
-    
-    const rawWorkflow = mockWorkflows[selectedWorkflow];
-    if (!rawWorkflow) {
-      console.error('❌ Workflow not found:', selectedWorkflow);
-      return null;
+    if (useExternalData && workflowData) {
+      console.log('🔄 Processing external workflow data:', workflowData);
+      const transformedData = transformWorkflowData(workflowData);
+      const validatedData = validateWorkflowData(transformedData);
+      console.log('✅ External workflow data processed:', validatedData);
+      return validatedData;
+    } else {
+      console.log('🔄 Processing mock workflow data for:', selectedWorkflow);
+      const rawWorkflow = mockWorkflows[selectedWorkflow];
+      if (!rawWorkflow) {
+        console.error('❌ Workflow not found:', selectedWorkflow);
+        return null;
+      }
+      const transformedData = transformWorkflowData(rawWorkflow);
+      const validatedData = validateWorkflowData(transformedData);
+      console.log('✅ Mock workflow data processed:', validatedData);
+      return validatedData;
     }
-
-    const transformedData = transformWorkflowData(rawWorkflow);
-    const validatedData = validateWorkflowData(transformedData);
-    
-    console.log('✅ Workflow data processed:', validatedData);
-    return validatedData;
-  }, [selectedWorkflow]);
+  }, [selectedWorkflow, workflowData, useExternalData]);
 
   /**
    * Calculate layout and generate positioned nodes/edges
@@ -873,21 +915,32 @@ export const WorkflowManager = () => {
       {/* Controls Section */}
       <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
         <div className="flex items-center gap-4">
-          {/* Workflow Selection */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Workflow:</label>
-            <select 
-              value={selectedWorkflow}
-              onChange={(e) => handleWorkflowChange(e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {Object.entries(mockWorkflows).map(([id, workflow]) => (
-                <option key={id} value={id}>
-                  {workflow.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Workflow Selection - Only show for mock data */}
+          {!useExternalData && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Workflow:</label>
+              <select 
+                value={selectedWorkflow}
+                onChange={(e) => handleWorkflowChange(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.entries(mockWorkflows).map(([id, workflow]) => (
+                  <option key={id} value={id}>
+                    {workflow.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          {/* External Data Indicator */}
+          {useExternalData && currentWorkflowData && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Workflow:</span>
+              <span className="text-sm text-blue-600 font-medium">{currentWorkflowData.name}</span>
+              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
+            </div>
+          )}
 
           {/* Layout Toggle */}
           <Button
