@@ -391,13 +391,13 @@ export const validateWorkflowData = (data: WorkflowData): WorkflowData => {
 
 // Default configuration for layout calculations
 export const defaultLayoutConfig: LayoutConfig = {
-  workflowWidth: 1800,
-  workflowHeight: 1200,
-  stageWidth: 200,
-  stageHeight: 120,
-  circleSize: 80,
-  padding: 150,
-  spacing: 350,
+  workflowWidth: 1200,
+  workflowHeight: 800,
+  stageWidth: 120,
+  stageHeight: 80,
+  circleSize: 60,
+  padding: 100,
+  spacing: 180,
   isHorizontal: true,
 };
 
@@ -520,22 +520,36 @@ export const calculateSmartLayout = (
     let x, y;
     
     if (isHorizontal) {
-      x = padding + level * levelSpacing;
+      // Horizontal layout - nodes flow left to right
+      x = padding + level * Math.min(levelSpacing, 200); // Cap maximum spacing at 200px
       
       if (nodesCount === 1) {
         y = config.workflowHeight / 2;
       } else {
-        const verticalSpacing = (config.workflowHeight - 2 * padding) / (nodesCount - 1);
-        y = padding + indexAtLevel * verticalSpacing;
+        // Better vertical distribution with minimum spacing
+        const availableHeight = config.workflowHeight - 2 * padding;
+        const minNodeSpacing = 100; // Minimum 100px between nodes
+        const totalSpacing = Math.max(minNodeSpacing * (nodesCount - 1), availableHeight);
+        const actualSpacing = Math.min(totalSpacing / Math.max(1, nodesCount - 1), availableHeight / Math.max(1, nodesCount - 1));
+        
+        const startY = config.workflowHeight / 2 - ((nodesCount - 1) * actualSpacing) / 2;
+        y = startY + indexAtLevel * actualSpacing;
       }
     } else {
-      y = padding + level * levelSpacing;
+      // Vertical layout - nodes flow top to bottom
+      y = padding + level * Math.min(levelSpacing, 150); // Cap maximum spacing at 150px
       
       if (nodesCount === 1) {
         x = config.workflowWidth / 2;
       } else {
-        const horizontalSpacing = (config.workflowWidth - 2 * padding) / (nodesCount - 1);
-        x = padding + indexAtLevel * horizontalSpacing;
+        // Better horizontal distribution with minimum spacing
+        const availableWidth = config.workflowWidth - 2 * padding;
+        const minNodeSpacing = 150; // Minimum 150px between nodes
+        const totalSpacing = Math.max(minNodeSpacing * (nodesCount - 1), availableWidth);
+        const actualSpacing = Math.min(totalSpacing / Math.max(1, nodesCount - 1), availableWidth / Math.max(1, nodesCount - 1));
+        
+        const startX = config.workflowWidth / 2 - ((nodesCount - 1) * actualSpacing) / 2;
+        x = startX + indexAtLevel * actualSpacing;
       }
     }
     
