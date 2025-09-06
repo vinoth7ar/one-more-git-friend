@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, memo, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, memo, useMemo } from 'react';
 import {
   ReactFlow,
   addEdge,
@@ -469,694 +469,462 @@ export const calculateSmartLayout = (
   
   // Use BFS to calculate hierarchical levels
   const levels = new Map<string, number>();
-  const positions = new Map<string, { x: number; y: number; level: number; row: number }>();
   const visited = new Set<string>();
+  const queue: { id: string; level: number }[] = [];
   
-  // Initialize BFS queue with start nodes at level 0
-  const queue: Array<{ nodeId: string; level: number }> = [];
-  
+  // Start BFS from all root nodes
   startNodes.forEach(node => {
-    queue.push({ nodeId: node.id, level: 0 });
+    queue.push({ id: node.id, level: 0 });
     levels.set(node.id, 0);
   });
   
-  // BFS traversal to assign levels (hierarchical positioning)
+  // BFS to assign levels
   while (queue.length > 0) {
-    const { nodeId, level } = queue.shift()!;
+    const { id, level } = queue.shift()!;
     
-    if (visited.has(nodeId)) continue;
-    visited.add(nodeId);
+    if (visited.has(id)) continue;
+    visited.add(id);
     
-    // Process all children of current node
-    const children = outgoing.get(nodeId) || [];
+    const children = outgoing.get(id) || [];
     children.forEach(childId => {
-      if (!visited.has(childId)) {
-        const newLevel = level + 1;
-        // Assign to the earliest possible level (closest to root)
-        if (!levels.has(childId) || levels.get(childId)! > newLevel) {
-          levels.set(childId, newLevel);
-          queue.push({ nodeId: childId, level: newLevel });
-        }
+      if (!levels.has(childId) || levels.get(childId)! < level + 1) {
+        levels.set(childId, level + 1);
+        queue.push({ id: childId, level: level + 1 });
       }
     });
   }
   
-  // Handle any orphaned nodes (not connected to main graph)
+  // Group nodes by level
+  const nodesByLevel = new Map<number, WorkflowNode[]>();
   nodes.forEach(node => {
-    if (!levels.has(node.id)) {
-      levels.set(node.id, 0);
+    const level = levels.get(node.id) ?? 0;
+    if (!nodesByLevel.has(level)) {
+      nodesByLevel.set(level, []);
     }
+    nodesByLevel.get(level)!.push(node);
   });
   
-  // Group nodes by level for organized positioning
-  const levelGroups = new Map<number, string[]>();
-  levels.forEach((level, nodeId) => {
-    if (!levelGroups.has(level)) {
-      levelGroups.set(level, []);
-    }
-    levelGroups.get(level)!.push(nodeId);
-  });
+  // Calculate positions
+  const maxLevel = Math.max(...levels.values());
+  const levelSpacing = isHorizontal 
+    ? (config.workflowWidth - 2 * padding) / Math.max(1, maxLevel)
+    : (config.workflowHeight - 2 * padding) / Math.max(1, maxLevel);
   
-  const maxLevel = Math.max(...Array.from(levels.values()));
-  
-  // Enhanced spacing for clean, professional appearance
-  const levelSpacing = 350; // Distance between hierarchy levels
-  const nodeSpacing = 150;  // Distance between nodes in same level
-  
-  // Calculate actual positions based on layout orientation
-  if (isHorizontal) {
-    // Horizontal layout: left-to-right flow
-    for (let level = 0; level <= maxLevel; level++) {
-      const nodesInLevel = levelGroups.get(level) || [];
-      const x = padding + level * levelSpacing;
-      
-      // Center nodes vertically within level
-      const totalHeight = nodesInLevel.length * stageHeight + (nodesInLevel.length - 1) * nodeSpacing;
-      const startY = padding + Math.max(100, (1000 - totalHeight) / 2);
-      
-      nodesInLevel.forEach((nodeId, index) => {
-        const y = startY + index * (stageHeight + nodeSpacing);
-        positions.set(nodeId, { x, y, level, row: index });
-      });
-    }
-  } else {
-    // Vertical layout: top-to-bottom flow
-    for (let level = 0; level <= maxLevel; level++) {
-      const nodesInLevel = levelGroups.get(level) || [];
-      const y = padding + level * levelSpacing;
-      
-      // Center nodes horizontally within level
-      const totalWidth = nodesInLevel.length * stageWidth + (nodesInLevel.length - 1) * nodeSpacing;
-      const startX = padding + Math.max(100, (1800 - totalWidth) / 2);
-      
-      nodesInLevel.forEach((nodeId, index) => {
-        const x = startX + index * (stageWidth + nodeSpacing);
-        positions.set(nodeId, { x, y, level, row: index });
-      });
-    }
-  }
-  
-  // Calculate canvas dimensions to fit all nodes
-  let canvasWidth, canvasHeight;
-  if (isHorizontal) {
-    canvasWidth = Math.max((maxLevel + 1) * levelSpacing + 2 * padding + stageWidth, 1800);
-    canvasHeight = 1200;
-  } else {
-    canvasWidth = 2000;
-    canvasHeight = Math.max((maxLevel + 1) * levelSpacing + 2 * padding + stageHeight, 1200);
-  }
-  
-  return {
-    positions,
-    levels,
-    levelGroups,
-    canvasWidth,
-    canvasHeight,
-    maxLevel,
-    analysis
-  };
-};
-
-/**
- * Generates React Flow edges with smart routing and styling
- * Handles different connection patterns based on layout and flow direction
- */
-export const generateSmartEdges = (
-  workflowData: WorkflowData,
-  layout: ReturnType<typeof calculateSmartLayout>,
-  isHorizontal: boolean = true
-): Edge[] => {
-  const { positions, levels } = layout;
-  console.log('🔗 Generating smart edges for', workflowData.edges.length, 'edge definitions');
-  
-  if (!workflowData.edges || workflowData.edges.length === 0) {
-    console.warn('⚠️ No edges found in workflow data');
-    return [];
-  }
-  
-  const generatedEdges = workflowData.edges.map((edge, index) => {
-    const sourcePos = positions.get(edge.source);
-    const targetPos = positions.get(edge.target);
+  const positionedNodes = nodes.map(node => {
+    const level = levels.get(node.id) ?? 0;
+    const nodesAtLevel = nodesByLevel.get(level) || [];
+    const indexAtLevel = nodesAtLevel.indexOf(node);
+    const nodesCount = nodesAtLevel.length;
     
-    // Validate that both nodes exist in the layout
-    if (!sourcePos || !targetPos) {
-      console.error(`❌ Edge ${edge.id} references invalid nodes - source: ${edge.source}, target: ${edge.target}`);
-      return null;
-    }
-    
-    const sourceLevel = levels.get(edge.source) || 0;
-    const targetLevel = levels.get(edge.target) || 0;
-    
-    // Detect backward flow (connections that go against main hierarchy)
-    const isBackwardFlow = targetLevel <= sourceLevel && sourceLevel > 0;
-    
-    console.log(`✅ Processing edge ${edge.id}: ${edge.source} → ${edge.target} (levels: ${sourceLevel} → ${targetLevel})`);
-    
-    // Determine connection points based on layout orientation and flow direction
-    let sourceHandle, targetHandle;
+    // Calculate position based on level and index within level
+    let x, y;
     
     if (isHorizontal) {
-      if (isBackwardFlow) {
-        // Backward flow: use bottom connections to avoid visual conflicts
-        sourceHandle = 'bottom-source';
-        targetHandle = 'bottom-target';
+      x = padding + level * levelSpacing;
+      
+      if (nodesCount === 1) {
+        y = config.workflowHeight / 2;
       } else {
-        // Normal forward flow: left-to-right
-        sourceHandle = 'right-source';
-        targetHandle = 'left-target';
+        const verticalSpacing = (config.workflowHeight - 2 * padding) / (nodesCount - 1);
+        y = padding + indexAtLevel * verticalSpacing;
       }
     } else {
-      if (isBackwardFlow) {
-        // Backward flow in vertical layout: use right connections
-        sourceHandle = 'right-source';
-        targetHandle = 'right-target';
+      y = padding + level * levelSpacing;
+      
+      if (nodesCount === 1) {
+        x = config.workflowWidth / 2;
       } else {
-        // Normal vertical flow: top-to-bottom
-        sourceHandle = 'bottom-source';
-        targetHandle = 'top-target';
+        const horizontalSpacing = (config.workflowWidth - 2 * padding) / (nodesCount - 1);
+        x = padding + indexAtLevel * horizontalSpacing;
       }
     }
     
     return {
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle,
-      targetHandle,
-      label: edge.label,
-      style: {
-        stroke: '#94a3b8',
-        strokeWidth: 2,
-        // Add subtle animation for backward flows to highlight them
-        ...(isBackwardFlow && {
-          strokeDasharray: '5,5',
-          animation: 'dash 1s linear infinite',
-        }),
-      },
-      markerEnd: {
-        type: 'arrowclosed',
-        width: 20,
-        height: 20,
-        color: '#94a3b8',
-      },
-      type: isBackwardFlow ? 'smoothstep' : 'default',
+      ...node,
+      x,
+      y,
+      level,
+      originalType: node.type
     };
-  }).filter(Boolean) as Edge[];
+  });
   
-  console.log('✅ Generated edges:', generatedEdges.length);
-  return generatedEdges;
+  return positionedNodes;
 };
 
 /**
- * Converts workflow data into positioned React Flow nodes
- * This bridges our data format with React Flow's expected format
- */
-export const generateReactFlowNodes = (
-  workflowData: WorkflowData,
-  layout: ReturnType<typeof calculateSmartLayout>,
-  isHorizontal: boolean
-): Node[] => {
-  const { positions } = layout;
-  
-  console.log('🎨 Generating React Flow nodes for', workflowData.nodes.length, 'workflow nodes');
-  
-  const reactFlowNodes = workflowData.nodes.map((workflowNode) => {
-    const position = positions.get(workflowNode.id);
-    
-    if (!position) {
-      console.error(`❌ No position found for node ${workflowNode.id}`);
-      return null;
-    }
-    
-    return {
-      id: workflowNode.id,
-      type: workflowNode.type,
-      position: { x: position.x, y: position.y },
-      data: {
-        label: workflowNode.label,
-        originalType: workflowNode.type,
-      },
-    };
-  }).filter(Boolean) as Node[];
-  
-  console.log('✅ Generated React Flow nodes:', reactFlowNodes.length);
-  return reactFlowNodes;
-};
-
-/**
- * ============= VISUAL REACT FLOW COMPONENTS =============
- * Custom node components that render in the workflow canvas
+ * ============= REACT FLOW NODE COMPONENTS =============
+ * Custom node components for different workflow node types
  */
 
-/**
- * Status Node Component (Circular nodes representing states/statuses)
- * These represent points in time or conditions in the workflow
- */
-const StatusNode = memo(({ data, selected }: NodeProps) => {
-  console.log('🟢 Rendering Status Node:', data);
+// Status Node Component - Circular nodes representing workflow states
+const StatusNode = memo<NodeProps>(({ data, isConnectable }) => {
+  console.log('🟢 Rendering Status Node:', JSON.stringify(data, null, 2));
   
   return (
-    <div 
-      className={`
-        relative w-24 h-24 rounded-full border-2 
-        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
-        bg-amber-50 border-amber-300 
-        flex items-center justify-center
-        cursor-pointer hover:shadow-lg transition-all duration-200
-        shadow-md
-      `}
-    >
-      {/* Connection handles - invisible but functional with proper IDs */}
-      <Handle 
-        id="left-target"
-        type="target" 
-        position={Position.Left} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+    <div className="status-node">
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={isConnectable}
+        className="handle"
       />
-      <Handle 
-        id="right-source"
-        type="source" 
-        position={Position.Right} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="top-target"
-        type="target" 
-        position={Position.Top} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="bottom-source"
-        type="source" 
-        position={Position.Bottom} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="right-target"
-        type="target" 
-        position={Position.Right} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="bottom-target"
-        type="target" 
-        position={Position.Bottom} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      
-      {/* Node content */}
-      <div className="text-center">
-        <div className="text-xs font-medium text-amber-800 leading-tight">
-          {data.label as string}
-        </div>
-        {data.secondaryLabel && (
-          <div className="text-xs text-amber-600 mt-1">
-            {data.secondaryLabel as string}
-          </div>
-        )}
+      <div className="status-node-content">
+        {String(data.label)}
       </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={isConnectable}
+        className="handle"
+      />
     </div>
   );
 });
 
-/**
- * Event Node Component (Rectangular nodes representing actions/events)
- * These represent actions that can be taken or events that occur
- */
-const EventNode = memo(({ data, selected }: NodeProps) => {
-  console.log('📦 Rendering Event Node:', data);
+StatusNode.displayName = 'StatusNode';
+
+// Event Node Component - Rectangular nodes representing workflow events/actions
+const EventNode = memo<NodeProps>(({ data, isConnectable }) => {
+  console.log('📦 Rendering Event Node:', JSON.stringify(data, null, 2));
   
   return (
-    <div 
-      className={`
-        relative px-4 py-3 min-w-[120px] h-16
-        rounded-lg border-2
-        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
-        bg-slate-50 border-slate-300
-        flex items-center justify-center
-        cursor-pointer hover:shadow-lg transition-all duration-200
-        shadow-md
-      `}
-    >
-      {/* Connection handles - invisible but functional with proper IDs */}
-      <Handle 
-        id="left-target"
-        type="target" 
-        position={Position.Left} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
+    <div className="event-node">
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={isConnectable}
+        className="handle"
       />
-      <Handle 
-        id="right-source"
-        type="source" 
-        position={Position.Right} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="top-target"
-        type="target" 
-        position={Position.Top} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="bottom-source"
-        type="source" 
-        position={Position.Bottom} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="right-target"
-        type="target" 
-        position={Position.Right} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      <Handle 
-        id="bottom-target"
-        type="target" 
-        position={Position.Bottom} 
-        className="w-2 h-2 !bg-transparent !border-transparent opacity-0" 
-      />
-      
-      {/* Node content */}
-      <div className="text-center">
-        <div className="text-sm font-medium text-slate-700">
-          {data.label as string}
-        </div>
-        {data.secondaryLabel && (
-          <div className="text-xs text-slate-500 mt-1">
-            {data.secondaryLabel as string}
-          </div>
-        )}
+      <div className="event-node-content">
+        {String(data.label)}
       </div>
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={isConnectable}
+        className="handle"
+      />
     </div>
   );
 });
 
-/**
- * ============= NODE TYPE REGISTRY =============
- * Maps node types to their respective React components
- */
-const nodeTypes = {
-  status: StatusNode,  // Circular status nodes
-  event: EventNode,    // Rectangular event nodes
-};
+EventNode.displayName = 'EventNode';
 
 /**
- * ============= MAIN WORKFLOW MANAGER COMPONENT =============
- * The primary component that orchestrates the entire workflow visualization
+ * ============= WORKFLOW MANAGER COMPONENT =============
+ * Main component that orchestrates the entire workflow visualization
  */
+
 interface WorkflowManagerProps {
-  workflowData?: RawWorkflowData;  // Optional external data
-  useExternalData?: boolean;       // Flag to use external vs mock data
+  workflowData?: RawWorkflowData | null;
+  useExternalData?: boolean;
 }
 
-export const WorkflowManager = ({ workflowData, useExternalData = false }: WorkflowManagerProps = {}) => {
-  // ========== STATE MANAGEMENT ==========
+export const WorkflowManager: React.FC<WorkflowManagerProps> = ({ 
+  workflowData = null, 
+  useExternalData = false 
+}) => {
+  console.group('🎯 WORKFLOW MANAGER RENDER');
+  console.log('⚙️ Props received:', { 
+    hasWorkflowData: !!workflowData, 
+    useExternalData,
+    workflowDataKeys: workflowData ? Object.keys(workflowData) : null
+  });
+
+  // ============= STATE MANAGEMENT =============
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>(defaultWorkflow);
   const [isHorizontal, setIsHorizontal] = useState(true);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [hasError, setHasError] = useState<string | null>(null);
 
-  // ========== WORKFLOW DATA PROCESSING ==========
-  
-  /**
-   * Transform the selected workflow data for React Flow
-   * This runs whenever the selected workflow or layout orientation changes
-   */
-  const currentWorkflowData = useMemo(() => {
-    console.group('🔧 WORKFLOW DATA PROCESSING MEMO');
-    
-    if (useExternalData && workflowData) {
-      console.log('🔄 Processing external workflow data');
-      console.log('📋 Raw external data:', JSON.stringify(workflowData, null, 2));
-      
-      try {
-        const transformedData = transformWorkflowData(workflowData);
-        const validatedData = validateWorkflowData(transformedData);
-        console.log('✅ External workflow data processing complete');
-        console.groupEnd();
-        return validatedData;
-      } catch (error) {
-        console.error('❌ Error processing external data:', error);
-        console.groupEnd();
-        return null;
-      }
-    } else {
-      console.log('🔄 Processing mock workflow data for:', selectedWorkflow);
-      const rawWorkflow = mockWorkflows[selectedWorkflow];
-      if (!rawWorkflow) {
-        console.error('❌ Workflow not found:', selectedWorkflow);
-        console.groupEnd();
-        return null;
-      }
-      console.log('📋 Raw mock data:', JSON.stringify(rawWorkflow, null, 2));
-      
-      try {
-        const transformedData = transformWorkflowData(rawWorkflow);
-        const validatedData = validateWorkflowData(transformedData);
-        console.log('✅ Mock workflow data processing complete');
-        console.groupEnd();
-        return validatedData;
-      } catch (error) {
-        console.error('❌ Error processing mock data:', error);
-        console.groupEnd();
-        return null;
-      }
-    }
-  }, [selectedWorkflow, workflowData, useExternalData]);
-
-  /**
-   * Calculate layout and generate positioned nodes/edges
-   * This handles the visual positioning and routing logic
-   */
-  const { processedNodes, processedEdges } = useMemo(() => {
-    console.group('🧮 LAYOUT CALCULATION MEMO');
-    console.log('📐 Starting layout calculation...');
-    console.log('🔧 Layout params:', { isHorizontal, hasData: !!currentWorkflowData });
-    
-    if (!currentWorkflowData) {
-      console.warn('⚠️ No workflow data available for layout calculation');
-      console.groupEnd();
-      return { processedNodes: [], processedEdges: [] };
-    }
-
-    console.log('📋 Input workflow data for layout:', JSON.stringify(currentWorkflowData, null, 2));
+  // ============= DATA PROCESSING =============
+  // Process workflow data (either external or mock) into our internal format
+  const processedWorkflowData = useMemo(() => {
+    console.group('🔄 PROCESSING WORKFLOW DATA');
+    console.log('📊 useExternalData:', useExternalData);
+    console.log('📊 workflowData exists:', !!workflowData);
     
     try {
-      // Use our smart layout algorithm
-      const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
-      console.log('🔧 Layout config:', layoutConfig);
+      setHasError(null);
+      let rawData;
+      let result;
       
-      const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
-      console.log('✅ Smart layout calculation complete');
+      if (useExternalData && workflowData) {
+        console.log('📊 Using external data:', workflowData);
+        rawData = workflowData;
+        result = validateWorkflowData(transformWorkflowData(rawData));
+      } else {
+        console.log('📊 Using mock data for workflow:', selectedWorkflow);
+        rawData = mockWorkflows[selectedWorkflow] || mockWorkflows[defaultWorkflow];
+        result = validateWorkflowData(rawData);
+      }
       
-      // Generate React Flow nodes with proper positioning
-      const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal);
-      const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
-      
-      console.log('✅ React Flow generation complete:', {
-        nodeCount: reactFlowNodes.length,
-        edgeCount: reactFlowEdges.length,
-        isHorizontal
+      console.log('✅ Processed data:', {
+        id: result.id,
+        name: result.name,
+        nodeCount: result.nodes.length,
+        edgeCount: result.edges.length
       });
-      console.log('🔵 Generated nodes:', reactFlowNodes);
-      console.log('🔗 Generated edges:', reactFlowEdges);
+      console.groupEnd();
       
-      console.groupEnd();
-      return {
-        processedNodes: reactFlowNodes,
-        processedEdges: reactFlowEdges
-      };
+      return result;
     } catch (error) {
-      console.error('❌ Layout calculation failed:', error);
+      console.error('❌ Error processing workflow data:', error);
+      setHasError(error instanceof Error ? error.message : 'Failed to process workflow data');
       console.groupEnd();
-      return { processedNodes: [], processedEdges: [] };
+      
+      // Return fallback data
+      return validateWorkflowData({
+        id: 'error-fallback',
+        name: 'Error Fallback',
+        description: 'Fallback workflow due to data processing error',
+        nodes: [],
+        edges: []
+      });
     }
-  }, [currentWorkflowData, isHorizontal]);
+  }, [useExternalData, workflowData, selectedWorkflow]);
 
-  /**
-   * Update React Flow state when processed data changes
-   * This ensures the visualization stays in sync
-   */
-  useEffect(() => {
-    console.group('🔄 REACT FLOW STATE UPDATE');
-    console.log('🔧 State update triggered with:', {
-      nodeCount: processedNodes.length,
-      edgeCount: processedEdges.length,
-      isInitialized
+  // ============= LAYOUT CALCULATION =============
+  // Calculate node positions and convert to ReactFlow format
+  const { reactFlowNodes, reactFlowEdges, layoutConfig } = useMemo(() => {
+    console.group('📐 CALCULATING LAYOUT');
+    console.log('📐 Input data:', {
+      nodeCount: processedWorkflowData.nodes.length,
+      edgeCount: processedWorkflowData.edges.length,
+      isHorizontal
     });
     
-    if (processedNodes.length > 0) {
-      console.log('✅ Updating nodes state');
-      setNodes(processedNodes);
-      setIsInitialized(true);
-    } else {
-      console.warn('⚠️ No processed nodes to set');
+    try {
+      const config = { ...defaultLayoutConfig, isHorizontal };
+      const positionedNodes = calculateSmartLayout(processedWorkflowData, config);
+      
+      console.log('📐 Positioned nodes:', positionedNodes.length);
+      
+      const reactNodes = positionedNodes.map(node => ({
+        id: node.id,
+        type: node.originalType === 'status' ? 'statusNode' : 'eventNode',
+        position: { x: node.x, y: node.y },
+        data: { 
+          label: node.label, 
+          originalType: node.originalType 
+        },
+      }));
+      
+      const reactEdges = processedWorkflowData.edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label,
+        type: 'smoothstep',
+        style: { strokeWidth: 2, stroke: '#64748b' },
+        animated: true,
+      }));
+      
+      console.log('📐 Final react flow data:', {
+        nodeCount: reactNodes.length,
+        edgeCount: reactEdges.length
+      });
+      console.groupEnd();
+      
+      return {
+        reactFlowNodes: reactNodes,
+        reactFlowEdges: reactEdges,
+        layoutConfig: config
+      };
+    } catch (error) {
+      console.error('❌ Error calculating layout:', error);
+      console.groupEnd();
+      
+      return {
+        reactFlowNodes: [],
+        reactFlowEdges: [],
+        layoutConfig: defaultLayoutConfig
+      };
     }
+  }, [processedWorkflowData, isHorizontal]);
+
+  // ============= EFFECTS =============
+  // Update ReactFlow nodes and edges when layout changes
+  useEffect(() => {
+    console.group('🔄 UPDATING REACT FLOW NODES AND EDGES');
+    console.log('🔄 Setting nodes:', reactFlowNodes.length);
+    console.log('🔄 Setting edges:', reactFlowEdges.length);
+    console.log('🔄 Node details:', reactFlowNodes);
+    console.log('🔄 Edge details:', reactFlowEdges);
     
-    if (processedEdges.length > 0) {
-      console.log('✅ Updating edges state');
-      setEdges(processedEdges);
-    } else {
-      console.warn('⚠️ No processed edges to set');
-    }
+    setNodes(reactFlowNodes);
+    setEdges(reactFlowEdges);
     
     console.groupEnd();
-  }, [processedNodes, processedEdges, setNodes, setEdges]);
+  }, [reactFlowNodes, reactFlowEdges, setNodes, setEdges]);
 
-  // ========== EVENT HANDLERS ==========
+  // ============= EVENT HANDLERS =============
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      console.log('🔗 Connection attempt:', connection);
+      setEdges((eds) => addEdge(connection, eds));
+    },
+    [setEdges]
+  );
 
-  /**
-   * Handle new connections between nodes (user-created edges)
-   */
-  const onConnect = useCallback((params: Connection) => {
-    console.log('🔗 Creating new connection:', params);
-    setEdges((eds) => addEdge(params, eds));
-  }, [setEdges]);
+  const nodeTypes = {
+    statusNode: StatusNode,
+    eventNode: EventNode,
+  };
 
-  /**
-   * Handle workflow selection changes
-   */
-  const handleWorkflowChange = useCallback((workflowId: string) => {
-    console.log('🔄 Changing workflow to:', workflowId);
-    setSelectedWorkflow(workflowId);
-    setIsInitialized(false);
-  }, []);
+  console.log('🎯 About to render with data:', {
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    workflowName: processedWorkflowData.name,
+    hasError
+  });
+  console.groupEnd();
 
-  /**
-   * Handle layout orientation changes
-   */
-  const handleLayoutChange = useCallback(() => {
-    console.log('🔄 Toggling layout orientation from', isHorizontal ? 'horizontal' : 'vertical');
-    setIsHorizontal(!isHorizontal);
-    setIsInitialized(false);
-  }, [isHorizontal]);
-
-  // ========== RENDER ==========
-  
-  // Loading state while data is being processed
-  if (!currentWorkflowData || !isInitialized) {
+  // ============= ERROR HANDLING =============
+  if (hasError) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-lg text-gray-600">Loading workflow visualization...</div>
+      <div className="w-full h-screen bg-red-50 flex items-center justify-center">
+        <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border border-red-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-red-600 text-sm">⚠️</span>
+            </div>
+            <h2 className="text-lg font-semibold text-red-800">
+              Workflow Load Error
+            </h2>
+          </div>
+          <p className="text-red-700 mb-4">
+            Unable to load workflow data. Please check the data format and try again.
+          </p>
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded border">
+            <strong>Error:</strong> {hasError}
+          </div>
+          <button
+            onClick={() => {
+              setHasError(null);
+              setSelectedWorkflow(defaultWorkflow);
+            }}
+            className="mt-4 w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition-colors"
+          >
+            Reset to Default Workflow
+          </button>
+        </div>
       </div>
     );
   }
 
+  // ============= EMPTY STATE =============
+  if (nodes.length === 0 && edges.length === 0) {
+    return (
+      <div className="w-full h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md p-6 bg-white rounded-lg shadow-lg border">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 text-sm">📊</span>
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800">
+              No Workflow Data
+            </h2>
+          </div>
+          <p className="text-gray-600 mb-4">
+            No workflow nodes or connections found. Please provide valid workflow data.
+          </p>
+          <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded border">
+            Expected format: nodes array with id, type, and label fields
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============= RENDER =============
   return (
-    <div className="w-full h-screen bg-gray-50">
-      {/* Workflow Header Section */}
-      <div className="bg-black text-white px-6 py-4 flex items-center gap-3">
-        <div className="w-2 h-2 rounded-full bg-white"></div>
-        <h1 className="text-lg font-semibold">
-          {currentWorkflowData.name}
-        </h1>
+    <div className="w-full h-screen bg-gray-50 flex flex-col">
+      {/* Debug Panel */}
+      <div className="bg-blue-50 border-b border-blue-200 p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="font-semibold text-blue-700">Data Source:</span>
+            <span className="ml-2 text-blue-600">
+              {useExternalData ? 'External API' : 'Mock Data'}
+            </span>
+          </div>
+          <div>
+            <span className="font-semibold text-blue-700">Nodes:</span>
+            <span className="ml-2 text-blue-600">{nodes.length}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-blue-700">Edges:</span>
+            <span className="ml-2 text-blue-600">{edges.length}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-blue-700">Layout:</span>
+            <span className="ml-2 text-blue-600">
+              {isHorizontal ? 'Horizontal' : 'Vertical'}
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Controls Section */}
-      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+      {/* Control Panel */}
+      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* Workflow Selection - Only show for mock data */}
+          <h1 className="text-xl font-bold text-gray-800">
+            {processedWorkflowData.name}
+          </h1>
+          <span className="text-sm text-gray-600">
+            {processedWorkflowData.description}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-4">
           {!useExternalData && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Workflow:</label>
-              <select 
-                value={selectedWorkflow}
-                onChange={(e) => handleWorkflowChange(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {Object.entries(mockWorkflows).map(([id, workflow]) => (
-                  <option key={id} value={id}>
-                    {workflow.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={selectedWorkflow}
+              onChange={(e) => setSelectedWorkflow(e.target.value)}
+              className="border rounded px-3 py-1 text-sm"
+            >
+              {Object.entries(mockWorkflows).map(([key, workflow]) => (
+                <option key={key} value={key}>
+                  {workflow.name}
+                </option>
+              ))}
+            </select>
           )}
           
-          {/* External Data Indicator */}
-          {useExternalData && currentWorkflowData && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Workflow:</span>
-              <span className="text-sm text-blue-600 font-medium">{currentWorkflowData.name}</span>
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
-            </div>
-          )}
-
-          {/* Layout Toggle */}
           <Button
-            onClick={handleLayoutChange}
+            onClick={() => setIsHorizontal(!isHorizontal)}
             variant="outline"
             size="sm"
-            className="flex items-center gap-2"
           >
-            <span>⚡</span>
-            {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+            ⚡ {isHorizontal ? 'Vertical' : 'Horizontal'}
           </Button>
-        </div>
-
-        {/* Modified Entity Section */}
-        <div className="text-sm text-gray-600">
-          Modified Entity: <span className="font-medium text-gray-900">Workflow Definition</span>
         </div>
       </div>
 
-      {/* Main Workflow Canvas with Border */}
-      <div className="p-4">
-        <div className="relative w-full h-[calc(100vh-200px)] border-2 border-gray-300 bg-white rounded-lg shadow-sm">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={nodeTypes}
-            connectionLineStyle={{
-              stroke: '#94a3b8',
-              strokeWidth: 2,
-            }}
-            defaultEdgeOptions={{
-              style: {
-                stroke: '#94a3b8',
-                strokeWidth: 2,
-              },
-              markerEnd: {
-                type: 'arrowclosed',
-                width: 20,
-                height: 20,
-                color: '#94a3b8',
-              },
-            }}
-            fitView
-            fitViewOptions={{
-              padding: 0.2,
-              maxZoom: 1.5,
-              minZoom: 0.1,
-            }}
-            minZoom={0.1}
-            maxZoom={2}
-            attributionPosition="top-right"
-          >
-            {/* Background Pattern */}
-            <Background
-              color="#e2e8f0"
-              gap={20}
-              size={1}
-            />
-            
-            {/* React Flow Controls - Must be inside ReactFlow component */}
-            <Controls
-              position="bottom-right"
-              className="bg-white border border-gray-300 rounded-lg shadow-lg"
-              showZoom={true}
-              showFitView={true}
-              showInteractive={true}
-            />
-          </ReactFlow>
-        </div>
+      {/* ReactFlow Canvas */}
+      <div className="flex-1">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{
+            padding: 0.2,
+            includeHiddenNodes: false,
+          }}
+          className="bg-gray-50"
+        >
+          <Background color="#e2e8f0" size={1} />
+          <Controls />
+        </ReactFlow>
       </div>
     </div>
   );
 };
+
+export default WorkflowManager;
