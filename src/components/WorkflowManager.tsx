@@ -147,13 +147,17 @@ export const defaultWorkflow = 'ebm-version';
  * Handles various possible field names and structures
  */
 export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData => {
-  console.log('🔄 Transforming raw workflow data:', rawData);
-  console.log('🏗️ Raw data structure keys:', Object.keys(rawData));
+  console.group('🔄 TRANSFORM WORKFLOW DATA DEBUG');
+  console.log('📋 Input raw data:', JSON.stringify(rawData, null, 2));
+  console.log('📋 Raw data type:', typeof rawData);
+  console.log('📋 Raw data keys:', Object.keys(rawData));
   
   // Extract workflow data from various possible structures
   const workflowData = rawData.workflow || rawData.data || rawData;
-  console.log('🏗️ Workflow data structure keys:', Object.keys(workflowData));
-  console.log('🏗️ Checking data fields:', {
+  console.log('📋 Extracted workflow data:', JSON.stringify(workflowData, null, 2));
+  console.log('📋 Workflow data keys:', Object.keys(workflowData));
+  
+  const fieldStatus = {
     hasNodes: !!workflowData.nodes,
     hasVertices: !!workflowData.vertices, 
     hasStates: !!workflowData.states,
@@ -162,7 +166,23 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
     hasConnections: !!workflowData.connections,
     hasTransitions: !!workflowData.transitions,
     hasLinks: !!workflowData.links
-  });
+  };
+  console.log('📋 Field status check:', fieldStatus);
+  
+  // Deep inspection of data structure
+  if (workflowData.nodes) {
+    console.log('🔵 NODES DATA FOUND:');
+    console.log('  - Type:', Array.isArray(workflowData.nodes) ? 'Array' : typeof workflowData.nodes);
+    console.log('  - Length:', workflowData.nodes.length);
+    console.log('  - Sample nodes:', workflowData.nodes.slice(0, 3));
+  }
+  
+  if (workflowData.edges) {
+    console.log('🔗 EDGES DATA FOUND:');
+    console.log('  - Type:', Array.isArray(workflowData.edges) ? 'Array' : typeof workflowData.edges);
+    console.log('  - Length:', workflowData.edges.length);
+    console.log('  - Sample edges:', workflowData.edges.slice(0, 3));
+  }
   
   // Extract basic properties with multiple fallback options
   const id = workflowData.id || 
@@ -187,15 +207,31 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
    * Handles different field naming conventions
    */
   const transformNodes = (rawNodes: any[]): WorkflowNode[] => {
-    if (!Array.isArray(rawNodes)) return [];
+    console.log('🔵 TRANSFORMING NODES:');
+    console.log('  - Input type:', Array.isArray(rawNodes) ? 'Array' : typeof rawNodes);
+    console.log('  - Input data:', JSON.stringify(rawNodes, null, 2));
     
-    return rawNodes.map((node, index) => ({
-      id: node.id || node.nodeId || node.node_id || `node-${index}`,
-      type: (node.type?.toLowerCase() === 'status' || 
-             node.nodeType?.toLowerCase() === 'status' || 
-             node.node_type?.toLowerCase() === 'status') ? 'status' : 'event',
-      label: node.label || node.name || node.title || node.text || `Node ${index + 1}`
-    }));
+    if (!Array.isArray(rawNodes)) {
+      console.warn('⚠️ rawNodes is not an array:', rawNodes);
+      return [];
+    }
+    
+    const transformed = rawNodes.map((node, index) => {
+      console.log(`  - Processing node ${index}:`, node);
+      
+      const id = node.id || node.nodeId || node.node_id || `node-${index}`;
+      const type: 'status' | 'event' = (node.type?.toLowerCase() === 'status' || 
+                   node.nodeType?.toLowerCase() === 'status' || 
+                   node.node_type?.toLowerCase() === 'status') ? 'status' : 'event';
+      const label = node.label || node.name || node.title || node.text || `Node ${index + 1}`;
+      
+      console.log(`    ✅ Transformed: id=${id}, type=${type}, label=${label}`);
+      
+      return { id, type, label };
+    });
+    
+    console.log('🔵 NODES TRANSFORMATION COMPLETE:', transformed);
+    return transformed;
   };
 
   /**
@@ -203,14 +239,30 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
    * Handles different field naming conventions for connections
    */
   const transformEdges = (rawEdges: any[]): WorkflowEdge[] => {
-    if (!Array.isArray(rawEdges)) return [];
+    console.log('🔗 TRANSFORMING EDGES:');
+    console.log('  - Input type:', Array.isArray(rawEdges) ? 'Array' : typeof rawEdges);
+    console.log('  - Input data:', JSON.stringify(rawEdges, null, 2));
     
-    return rawEdges.map((edge, index) => ({
-      id: edge.id || edge.edgeId || edge.edge_id || `edge-${index}`,
-      source: edge.source || edge.from || edge.sourceId || edge.source_id || '',
-      target: edge.target || edge.to || edge.targetId || edge.target_id || '',
-      label: edge.label || edge.name || edge.title || edge.text || ''
-    }));
+    if (!Array.isArray(rawEdges)) {
+      console.warn('⚠️ rawEdges is not an array:', rawEdges);
+      return [];
+    }
+    
+    const transformed = rawEdges.map((edge, index) => {
+      console.log(`  - Processing edge ${index}:`, edge);
+      
+      const id = edge.id || edge.edgeId || edge.edge_id || `edge-${index}`;
+      const source = edge.source || edge.from || edge.sourceId || edge.source_id || '';
+      const target = edge.target || edge.to || edge.targetId || edge.target_id || '';
+      const label = edge.label || edge.name || edge.title || edge.text || '';
+      
+      console.log(`    ✅ Transformed: id=${id}, source=${source}, target=${target}, label=${label}`);
+      
+      return { id, source, target, label };
+    });
+    
+    console.log('🔗 EDGES TRANSFORMATION COMPLETE:', transformed);
+    return transformed;
   };
 
   // Extract nodes and edges with various fallback strategies
@@ -251,13 +303,21 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
     console.warn('⚠️ No edge data found in any expected field');
   }
 
-  console.log('✅ Transformed workflow data:', { id, name, description, nodes: nodes.length, edges: edges.length });
-  console.log('🔵 Final nodes:', nodes);
-  console.log('🔗 Final edges:', edges);
+  const result = { id, name, description, nodes, edges };
+  
+  console.log('✅ TRANSFORMATION RESULT:', {
+    id, 
+    name, 
+    description, 
+    nodeCount: nodes.length, 
+    edgeCount: edges.length
+  });
+  console.log('🔵 Final transformed nodes:', nodes);
+  console.log('🔗 Final transformed edges:', edges);
+  console.log('📋 Complete result object:', JSON.stringify(result, null, 2));
+  console.groupEnd();
 
-  console.log('✅ Transformed workflow data:', { id, name, description, nodes: nodes.length, edges: edges.length });
-
-  return { id, name, description, nodes, edges };
+  return result;
 };
 
 /**
@@ -265,30 +325,61 @@ export const transformWorkflowData = (rawData: RawWorkflowData): WorkflowData =>
  * Ensures we always have a workable workflow even with incomplete data
  */
 export const validateWorkflowData = (data: WorkflowData): WorkflowData => {
-  console.log('🔍 Validating workflow data:', data);
+  console.group('🔍 VALIDATE WORKFLOW DATA DEBUG');
+  console.log('📋 Input validation data:', JSON.stringify(data, null, 2));
+  
   const validatedData = { ...data };
   
   // Ensure we have at least some nodes for a meaningful workflow
   if (!validatedData.nodes || validatedData.nodes.length === 0) {
-    console.warn('⚠️ No nodes found, creating default Start/End nodes');
+    console.warn('⚠️ CRITICAL: No nodes found, creating default Start/End nodes');
     validatedData.nodes = [
       { id: 'default-start', type: 'status', label: 'Start' },
       { id: 'default-end', type: 'status', label: 'End' }
     ];
+    console.log('🔧 Created default nodes:', validatedData.nodes);
   } else {
     console.log(`✅ Found ${validatedData.nodes.length} nodes to validate`);
+    console.log('🔵 Node details:', validatedData.nodes);
   }
   
   // Initialize edges array if missing
   if (!validatedData.edges) {
+    console.log('🔧 Initializing empty edges array');
     validatedData.edges = [];
+  } else {
+    console.log(`🔗 Found ${validatedData.edges.length} edges to validate`);
   }
   
   // Remove any edges that reference non-existent nodes (data integrity)
   const nodeIds = new Set(validatedData.nodes.map(node => node.id));
-  validatedData.edges = validatedData.edges.filter(edge => 
-    nodeIds.has(edge.source) && nodeIds.has(edge.target)
-  );
+  console.log('🔵 Available node IDs:', Array.from(nodeIds));
+  
+  const initialEdgeCount = validatedData.edges.length;
+  validatedData.edges = validatedData.edges.filter(edge => {
+    const hasValidSource = nodeIds.has(edge.source);
+    const hasValidTarget = nodeIds.has(edge.target);
+    const isValid = hasValidSource && hasValidTarget;
+    
+    if (!isValid) {
+      console.warn(`⚠️ Removing invalid edge: ${edge.id} (${edge.source} -> ${edge.target})`);
+      console.warn(`  - Source exists: ${hasValidSource}, Target exists: ${hasValidTarget}`);
+    }
+    
+    return isValid;
+  });
+  
+  const finalEdgeCount = validatedData.edges.length;
+  if (initialEdgeCount !== finalEdgeCount) {
+    console.warn(`🔧 Removed ${initialEdgeCount - finalEdgeCount} invalid edges`);
+  }
+  
+  console.log('✅ VALIDATION COMPLETE:', {
+    nodeCount: validatedData.nodes.length,
+    edgeCount: validatedData.edges.length
+  });
+  console.log('📋 Final validated data:', JSON.stringify(validatedData, null, 2));
+  console.groupEnd();
   
   return validatedData;
 };
@@ -795,23 +886,44 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
    * This runs whenever the selected workflow or layout orientation changes
    */
   const currentWorkflowData = useMemo(() => {
+    console.group('🔧 WORKFLOW DATA PROCESSING MEMO');
+    
     if (useExternalData && workflowData) {
-      console.log('🔄 Processing external workflow data:', workflowData);
-      const transformedData = transformWorkflowData(workflowData);
-      const validatedData = validateWorkflowData(transformedData);
-      console.log('✅ External workflow data processed:', validatedData);
-      return validatedData;
+      console.log('🔄 Processing external workflow data');
+      console.log('📋 Raw external data:', JSON.stringify(workflowData, null, 2));
+      
+      try {
+        const transformedData = transformWorkflowData(workflowData);
+        const validatedData = validateWorkflowData(transformedData);
+        console.log('✅ External workflow data processing complete');
+        console.groupEnd();
+        return validatedData;
+      } catch (error) {
+        console.error('❌ Error processing external data:', error);
+        console.groupEnd();
+        return null;
+      }
     } else {
       console.log('🔄 Processing mock workflow data for:', selectedWorkflow);
       const rawWorkflow = mockWorkflows[selectedWorkflow];
       if (!rawWorkflow) {
         console.error('❌ Workflow not found:', selectedWorkflow);
+        console.groupEnd();
         return null;
       }
-      const transformedData = transformWorkflowData(rawWorkflow);
-      const validatedData = validateWorkflowData(transformedData);
-      console.log('✅ Mock workflow data processed:', validatedData);
-      return validatedData;
+      console.log('📋 Raw mock data:', JSON.stringify(rawWorkflow, null, 2));
+      
+      try {
+        const transformedData = transformWorkflowData(rawWorkflow);
+        const validatedData = validateWorkflowData(transformedData);
+        console.log('✅ Mock workflow data processing complete');
+        console.groupEnd();
+        return validatedData;
+      } catch (error) {
+        console.error('❌ Error processing mock data:', error);
+        console.groupEnd();
+        return null;
+      }
     }
   }, [selectedWorkflow, workflowData, useExternalData]);
 
@@ -820,30 +932,48 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
    * This handles the visual positioning and routing logic
    */
   const { processedNodes, processedEdges } = useMemo(() => {
-    console.log('📐 Calculating layout for workflow visualization...');
+    console.group('🧮 LAYOUT CALCULATION MEMO');
+    console.log('📐 Starting layout calculation...');
+    console.log('🔧 Layout params:', { isHorizontal, hasData: !!currentWorkflowData });
     
     if (!currentWorkflowData) {
+      console.warn('⚠️ No workflow data available for layout calculation');
+      console.groupEnd();
       return { processedNodes: [], processedEdges: [] };
     }
 
-    // Use our smart layout algorithm
-    const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
-    const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
+    console.log('📋 Input workflow data for layout:', JSON.stringify(currentWorkflowData, null, 2));
     
-    // Generate React Flow nodes with proper positioning
-    const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal);
-    const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
-    
-    console.log('✅ Layout calculated:', {
-      nodes: reactFlowNodes.length,
-      edges: reactFlowEdges.length,
-      isHorizontal
-    });
-    
-    return {
-      processedNodes: reactFlowNodes,
-      processedEdges: reactFlowEdges
-    };
+    try {
+      // Use our smart layout algorithm
+      const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
+      console.log('🔧 Layout config:', layoutConfig);
+      
+      const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
+      console.log('✅ Smart layout calculation complete');
+      
+      // Generate React Flow nodes with proper positioning
+      const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal);
+      const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
+      
+      console.log('✅ React Flow generation complete:', {
+        nodeCount: reactFlowNodes.length,
+        edgeCount: reactFlowEdges.length,
+        isHorizontal
+      });
+      console.log('🔵 Generated nodes:', reactFlowNodes);
+      console.log('🔗 Generated edges:', reactFlowEdges);
+      
+      console.groupEnd();
+      return {
+        processedNodes: reactFlowNodes,
+        processedEdges: reactFlowEdges
+      };
+    } catch (error) {
+      console.error('❌ Layout calculation failed:', error);
+      console.groupEnd();
+      return { processedNodes: [], processedEdges: [] };
+    }
   }, [currentWorkflowData, isHorizontal]);
 
   /**
@@ -851,16 +981,29 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
    * This ensures the visualization stays in sync
    */
   useEffect(() => {
-    console.log('🔄 Updating React Flow state...');
+    console.group('🔄 REACT FLOW STATE UPDATE');
+    console.log('🔧 State update triggered with:', {
+      nodeCount: processedNodes.length,
+      edgeCount: processedEdges.length,
+      isInitialized
+    });
     
     if (processedNodes.length > 0) {
+      console.log('✅ Updating nodes state');
       setNodes(processedNodes);
       setIsInitialized(true);
+    } else {
+      console.warn('⚠️ No processed nodes to set');
     }
     
     if (processedEdges.length > 0) {
+      console.log('✅ Updating edges state');
       setEdges(processedEdges);
+    } else {
+      console.warn('⚠️ No processed edges to set');
     }
+    
+    console.groupEnd();
   }, [processedNodes, processedEdges, setNodes, setEdges]);
 
   // ========== EVENT HANDLERS ==========
