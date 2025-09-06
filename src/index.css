@@ -141,3 +141,24 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Workflow Node Styles */
+.status-node {
+  @apply w-20 h-20 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 shadow-lg;
+}
+
+.status-node-content {
+  @apply text-center px-2;
+}
+
+.event-node {
+  @apply w-24 h-12 rounded bg-blue-500 border-2 border-blue-600 flex items-center justify-center text-sm font-medium text-white shadow-lg;
+}
+
+.event-node-content {
+  @apply text-center px-2;
+}
+
+.handle {
+  @apply w-2 h-2 bg-gray-400 border border-gray-600;
+}
