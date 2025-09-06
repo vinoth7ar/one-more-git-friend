@@ -694,6 +694,17 @@ const WorkflowManager: React.FC<WorkflowManagerProps> = ({
   showBackground = true,
   isInteractive = true,
 }) => {
+  // Inject styles on first render
+  React.useEffect(() => {
+    const styleId = 'workflow-component-styles';
+    if (!document.getElementById(styleId)) {
+      const styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      styleElement.textContent = workflowStyles;
+      document.head.appendChild(styleElement);
+    }
+  }, []);
+
   const [isHorizontal, setIsHorizontal] = useState(true);
   const [currentSelectedWorkflow, setCurrentSelectedWorkflow] = useState(selectedWorkflow);
   const [error, setError] = useState<string | null>(null);
