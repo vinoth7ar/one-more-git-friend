@@ -197,29 +197,44 @@ export const createFlowEdges = (
   layout: ReturnType<typeof calculateSmartLayout>,
   isHorizontal: boolean
 ): Edge[] => {
-  const { levels } = layout;
+  const { levels, positions } = layout;
   
   return workflowData.edges.map((edge) => {
     const sourceLevel = levels.get(edge.source) || 0;
     const targetLevel = levels.get(edge.target) || 0;
     const isBackwardFlow = targetLevel <= sourceLevel;
+    const sourcePos = positions.get(edge.source);
+    const targetPos = positions.get(edge.target);
+    
+    // Calculate if this is a complex connection that needs special routing
+    const needsSmartRouting = sourcePos && targetPos && (
+      Math.abs(sourcePos.x - targetPos.x) > 300 || 
+      Math.abs(sourcePos.y - targetPos.y) > 200
+    );
     
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
       label: edge.label,
+      type: needsSmartRouting ? 'smoothstep' : 'default',
       style: { 
-        stroke: isBackwardFlow ? '#ff6b6b' : '#4a90e2', 
-        strokeWidth: 2,
-        strokeDasharray: isBackwardFlow ? '5,5' : undefined
+        stroke: isBackwardFlow ? '#ef4444' : '#3b82f6', 
+        strokeWidth: 2.5,
+        strokeDasharray: isBackwardFlow ? '8,4' : undefined,
+        strokeLinecap: 'round' as const,
       },
       markerEnd: {
         type: 'arrowclosed',
-        width: 20,
-        height: 20,
-        color: isBackwardFlow ? '#ff6b6b' : '#4a90e2',
+        width: 22,
+        height: 22,
+        color: isBackwardFlow ? '#ef4444' : '#3b82f6',
       },
+      animated: false,
+      pathOptions: needsSmartRouting ? { 
+        borderRadius: 20,
+        offset: 10 
+      } : undefined,
     };
   });
 };
