@@ -9,7 +9,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useWorkflowGraphHttp } from '../hooks/singleView/useWorkflowGraphHttp';
+import useWorkflowGraphHttp from '../hooks/singleView/useWorkflowGraphHttp';
 import StatusNode from '../nodes/StatusNode';
 import EventNode from '../nodes/EventNode';
 import {

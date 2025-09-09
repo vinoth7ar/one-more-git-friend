@@ -76,7 +76,7 @@ export const defaultWorkflow = 'ebm-version';
  * Hook for fetching workflow data - currently returns mock data
  * In the future, this will make HTTP calls to fetch real workflow data
  */
-export const useWorkflowGraphHttp = (fallbackWorkflowId?: string) => {
+const useWorkflowGraphHttp = (fallbackWorkflowId?: string) => {
   const data = useMemo(() => {
     if (fallbackWorkflowId && mockWorkflows[fallbackWorkflowId]) {
       return mockWorkflows[fallbackWorkflowId];
@@ -86,3 +86,5 @@ export const useWorkflowGraphHttp = (fallbackWorkflowId?: string) => {
 
   return { data };
 };
+
+export default useWorkflowGraphHttp;
