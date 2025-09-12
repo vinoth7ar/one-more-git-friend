@@ -577,11 +577,9 @@ export const calculateSmartLayout = (
   };
 };
 
-import { createSmartEdgeRoutes } from '../utils/edge-routing';
-
 /**
- * Generates React Flow edges with advanced collision avoidance
- * Prevents edge crossings and overlaps using smart routing algorithms
+ * Generates React Flow edges with smart routing and styling
+ * Handles different connection patterns based on layout and flow direction
  */
 export const generateSmartEdges = (
   workflowData: WorkflowData,
@@ -590,43 +588,106 @@ export const generateSmartEdges = (
   selectedNodeId: string | null = null,
   selectedEdgeId: string | null = null
 ): Edge[] => {
-  console.log('🔗 Generating smart edges with collision avoidance for', workflowData.edges.length, 'edge definitions');
+  const { positions, levels } = layout;
+  console.log('🔗 Generating smart edges for', workflowData.edges.length, 'edge definitions');
   
   if (!workflowData.edges || workflowData.edges.length === 0) {
     console.warn('⚠️ No edges found in workflow data');
     return [];
   }
   
-  // Use advanced edge routing to prevent crossings
-  const smartRoutes = createSmartEdgeRoutes(
-    workflowData,
-    layout,
-    isHorizontal,
-    selectedNodeId,
-    selectedEdgeId
-  );
-  
-  const generatedEdges = smartRoutes.map((route) => {
-    console.log(`✅ Processing edge ${route.id}: ${route.source} → ${route.target} (layer: ${route.layer})`);
+  const generatedEdges = workflowData.edges.map((edge, index) => {
+    const sourcePos = positions.get(edge.source);
+    const targetPos = positions.get(edge.target);
+    
+    // Validate that both nodes exist in the layout
+    if (!sourcePos || !targetPos) {
+      console.error(`❌ Edge ${edge.id} references invalid nodes - source: ${edge.source}, target: ${edge.target}`);
+      return null;
+    }
+    
+    const sourceLevel = levels.get(edge.source) || 0;
+    const targetLevel = levels.get(edge.target) || 0;
+    
+    // Detect backward flow (connections that go against main hierarchy)
+    const isBackwardFlow = targetLevel <= sourceLevel && sourceLevel > 0;
+    
+    // Check if this edge should be highlighted
+    const isConnectedToSelectedNode = selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId);
+    const isSelectedEdge = selectedEdgeId === edge.id;
+    
+    console.log(`✅ Processing edge ${edge.id}: ${edge.source} → ${edge.target} (levels: ${sourceLevel} → ${targetLevel})`);
+    
+    // Determine connection points based on layout orientation and flow direction
+    let sourceHandle, targetHandle;
+    
+    if (isHorizontal) {
+      if (isBackwardFlow) {
+        // Backward flow: use bottom connections to avoid visual conflicts
+        sourceHandle = 'bottom-source';
+        targetHandle = 'bottom-target';
+      } else {
+        // Normal forward flow: left-to-right
+        sourceHandle = 'right-source';
+        targetHandle = 'left-target';
+      }
+    } else {
+      if (isBackwardFlow) {
+        // Backward flow in vertical layout: use right connections
+        sourceHandle = 'right-source';
+        targetHandle = 'right-target';
+      } else {
+        // Normal vertical flow: top-to-bottom
+        sourceHandle = 'bottom-source';
+        targetHandle = 'top-target';
+      }
+    }
+    
+    // Enhanced styling based on selection and highlighting
+    let edgeStyle: any = {
+      stroke: '#94a3b8',
+      strokeWidth: 2,
+    };
+    
+    if (isSelectedEdge) {
+      edgeStyle = {
+        stroke: '#3b82f6',
+        strokeWidth: 3,
+      };
+    } else if (isConnectedToSelectedNode) {
+      edgeStyle = {
+        stroke: '#f59e0b',
+        strokeWidth: 3,
+      };
+    }
+    
+    // Add dotted animation for backward flows
+    if (isBackwardFlow) {
+      edgeStyle = {
+        ...edgeStyle,
+        strokeDasharray: '8,4',
+      };
+    }
     
     return {
-      id: route.id,
-      source: route.source,
-      target: route.target,
-      sourceHandle: route.sourceHandle,
-      targetHandle: route.targetHandle,
-      type: route.type,
-      label: route.label,
-      style: route.style,
-      markerEnd: route.markerEnd,
-      data: {
-        isBackwardFlow: route.isBackwardFlow,
-        layer: route.layer,
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle,
+      targetHandle,
+      label: edge.label,
+      style: edgeStyle,
+      markerEnd: {
+        type: 'arrowclosed',
+        width: 20,
+        height: 20,
+        color: isSelectedEdge ? '#3b82f6' : isConnectedToSelectedNode ? '#f59e0b' : '#94a3b8',
       },
+      type: isBackwardFlow ? 'smoothstep' : 'bezier',
     };
   }).filter(Boolean) as Edge[];
   
-  console.log('✅ Generated', generatedEdges.length, 'collision-free edges');
+  console.log('✅ Generated edges:', generatedEdges.length);
   return generatedEdges;
 };
 
