@@ -15,6 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
+import { applyElkLayout, applyEdgeSelectionStyling, createComplexMockData } from '@/utils/edge-routing';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -132,7 +133,8 @@ export const mockWorkflows: Record<string, WorkflowData> = {
       { id: "e14", source: "approved", target: "closing", label: "" },
       { id: "e15", source: "closing", target: "funding", label: "" }
     ]
-  }
+  },
+  'complex-routing-demo': createComplexMockData()
 };
 
 export const defaultWorkflow = 'ebm-version';
@@ -910,6 +912,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [isInitialized, setIsInitialized] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [useElkLayout, setUseElkLayout] = useState(true);
 
   // ========== WORKFLOW DATA PROCESSING ==========
   
@@ -959,6 +962,37 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     }
   }, [selectedWorkflow, workflowData, useExternalData]);
 
+  // ========== ELK LAYOUT EFFECT ==========
+  useEffect(() => {
+    if (useElkLayout && currentWorkflowData) {
+      const applyElkLayoutAsync = async () => {
+        try {
+          const { nodes: elkNodes, edges: elkEdges } = await applyElkLayout(currentWorkflowData, isHorizontal);
+          
+          const processedNodes = elkNodes.map(node => ({
+            ...node,
+            data: {
+              ...node.data,
+              isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
+                edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
+              ) : false
+            }
+          }));
+
+          const processedEdges = applyEdgeSelectionStyling(elkEdges, selectedNodeId, selectedEdgeId, currentWorkflowData);
+
+          setNodes(processedNodes);
+          setEdges(processedEdges);
+          setIsInitialized(true);
+        } catch (error) {
+          console.error('ELK layout failed:', error);
+        }
+      };
+
+      applyElkLayoutAsync();
+    }
+  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout, setNodes, setEdges]);
+
   /**
    * Calculate layout and generate positioned nodes/edges
    * This handles the visual positioning and routing logic
@@ -966,7 +1000,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const { processedNodes, processedEdges } = useMemo(() => {
     console.group('🧮 LAYOUT CALCULATION MEMO');
     console.log('📐 Starting layout calculation...');
-    console.log('🔧 Layout params:', { isHorizontal, hasData: !!currentWorkflowData });
+    console.log('🔧 Layout params:', { isHorizontal, hasData: !!currentWorkflowData, useElkLayout });
     
     if (!currentWorkflowData) {
       console.warn('⚠️ No workflow data available for layout calculation');
@@ -976,8 +1010,70 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
 
     console.log('📋 Input workflow data for layout:', JSON.stringify(currentWorkflowData, null, 2));
     
+    // Return promise-based layout calculation
+    const calculateLayout = async () => {
+      try {
+        if (useElkLayout) {
+          console.log('🔧 Using ELK-based layout');
+          const { nodes: elkNodes, edges: elkEdges } = await applyElkLayout(currentWorkflowData, isHorizontal);
+          
+          // Add highlighting to nodes
+          const processedNodes = elkNodes.map(node => ({
+            ...node,
+            data: {
+              ...node.data,
+              isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
+                edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
+              ) : false
+            }
+          }));
+
+          // Apply selection styling to edges
+          const processedEdges = applyEdgeSelectionStyling(elkEdges, selectedNodeId, selectedEdgeId, currentWorkflowData);
+
+          console.log('✅ ELK layout calculation complete');
+          console.groupEnd();
+          return { processedNodes, processedEdges };
+        } else {
+          // Use original smart layout algorithm
+          console.log('🔧 Using original smart layout');
+          const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
+          const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
+          
+          const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal).map(node => ({
+            ...node,
+            data: {
+              ...node.data,
+              isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
+                edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
+              ) : false
+            }
+          }));
+          const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal, selectedNodeId, selectedEdgeId);
+          
+          console.log('✅ Smart layout calculation complete');
+          console.groupEnd();
+          return {
+            processedNodes: reactFlowNodes,
+            processedEdges: reactFlowEdges
+          };
+        }
+      } catch (error) {
+        console.error('❌ Layout calculation failed:', error);
+        console.groupEnd();
+        return { processedNodes: [], processedEdges: [] };
+      }
+    };
+
+    // Since we can't use async in useMemo, we'll need to handle this differently
+    // For now, use the original layout and add a toggle for ELK
+    if (useElkLayout) {
+      // Return empty for now, will be handled by useEffect
+      return { processedNodes: [], processedEdges: [] };
+    }
+    
     try {
-      // Use our smart layout algorithm
+      // Use original smart layout algorithm
       const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
       console.log('🔧 Layout config:', layoutConfig);
       
@@ -1001,8 +1097,6 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
         edgeCount: reactFlowEdges.length,
         isHorizontal
       });
-      console.log('🔵 Generated nodes:', reactFlowNodes);
-      console.log('🔗 Generated edges:', reactFlowEdges);
       
       console.groupEnd();
       return {
@@ -1014,7 +1108,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       console.groupEnd();
       return { processedNodes: [], processedEdges: [] };
     }
-  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId]);
+  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout]);
 
   /**
    * Update React Flow state when processed data changes
@@ -1152,6 +1246,17 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           >
             <span>⚡</span>
             {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+          </Button>
+
+          {/* ELK Layout Toggle */}
+          <Button
+            onClick={() => setUseElkLayout(!useElkLayout)}
+            variant={useElkLayout ? "default" : "outline"}
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <span>🔀</span>
+            {useElkLayout ? 'ELK Layout' : 'Smart Layout'}
           </Button>
         </div>
 
