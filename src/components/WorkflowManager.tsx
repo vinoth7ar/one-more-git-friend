@@ -16,6 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { applyElkLayout, applyEdgeSelectionStyling, createComplexMockData } from '@/utils/edge-routing';
+import RoutedEdge from '@/components/edges/RoutedEdge';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -1297,6 +1298,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
+            edgeTypes={{ routed: RoutedEdge }}
             connectionLineStyle={{
               stroke: '#94a3b8',
               strokeWidth: 2,

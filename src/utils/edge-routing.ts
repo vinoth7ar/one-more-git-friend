@@ -103,17 +103,68 @@ export const applyElkLayout = async (
       };
     }) || [];
 
+    // Precompute parallel edge groups for separation
+    const groupMap = new Map<string, string[]>();
+    workflowData.edges.forEach((e) => {
+      const key = `${e.source}->${e.target}`;
+      const arr = groupMap.get(key) || [];
+      arr.push(e.id);
+      groupMap.set(key, arr);
+    });
+
+    // Helper to collect points from ELK sections
+    const getPoints = (elkEdge: any): { x: number; y: number }[] => {
+      const section = elkEdge.sections && elkEdge.sections[0];
+      if (!section) return [];
+      const pts: { x: number; y: number }[] = [
+        section.startPoint,
+        ...(section.bendPoints || []),
+        section.endPoint,
+      ].map((p: any) => ({ x: p.x, y: p.y }));
+      return pts;
+    };
+
+    // Helper to offset first and last segments to separate parallels
+    const applySeparation = (points: { x: number; y: number }[], offset: number) => {
+      if (points.length < 2 || offset === 0) return points;
+      const out = points.map((p) => ({ ...p }));
+
+      // first segment
+      const p0 = out[0], p1 = out[1];
+      const v1x = p1.x - p0.x; const v1y = p1.y - p0.y; const l1 = Math.hypot(v1x, v1y) || 1;
+      const nx1 = -v1y / l1; const ny1 = v1x / l1;
+      out[0].x += nx1 * offset; out[0].y += ny1 * offset;
+      out[1].x += nx1 * offset; out[1].y += ny1 * offset;
+
+      // last segment
+      const n = out.length;
+      const pn1 = out[n - 2], pn = out[n - 1];
+      const v2x = pn.x - pn1.x; const v2y = pn.y - pn1.y; const l2 = Math.hypot(v2x, v2y) || 1;
+      const nx2 = -v2y / l2; const ny2 = v2x / l2;
+      out[n - 2].x += nx2 * offset; out[n - 2].y += ny2 * offset;
+      out[n - 1].x += nx2 * offset; out[n - 1].y += ny2 * offset;
+
+      return out;
+    };
+
     // Convert edges with routing information
-    const edges: Edge[] = layoutedGraph.edges?.map(elkEdge => {
+    const edges: Edge[] = layoutedGraph.edges?.map((elkEdge: any) => {
       const originalEdge = workflowData.edges.find(e => e.id === elkEdge.id);
       if (!originalEdge) throw new Error(`Edge ${elkEdge.id} not found in original data`);
 
-      // Create edge with routing points if available
+      const basePoints = getPoints(elkEdge);
+      const key = `${originalEdge.source}->${originalEdge.target}`;
+      const group = groupMap.get(key) || [originalEdge.id];
+      const idx = group.indexOf(originalEdge.id);
+      const sep = (idx - (group.length - 1) / 2) * 8; // 8px spacing between parallels
+      const points = applySeparation(basePoints, sep);
+
       const edge: Edge = {
         id: elkEdge.id,
         source: originalEdge.source,
         target: originalEdge.target,
-        type: 'smoothstep', // Use smoothstep for better edge routing
+        type: 'routed',
+        data: { points },
         animated: false,
         style: {
           stroke: 'hsl(var(--border))',
