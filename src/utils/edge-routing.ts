@@ -9,19 +9,28 @@ import type { WorkflowData } from '@/components/WorkflowManager';
 
 const elk = new ELK();
 
-// ELK layout options for workflow diagrams
+// Enhanced ELK layout options for optimal edge routing
 const elkOptions = {
   'elk.algorithm': 'layered',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '150',
-  'elk.spacing.nodeNode': '100',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '200',
+  'elk.spacing.nodeNode': '150',
+  'elk.spacing.edgeNode': '50',
+  'elk.spacing.edgeEdge': '15',
   'elk.direction': 'RIGHT',
   'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+  'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
   'elk.layered.edgeRouting.selfLoopDistribution': 'EQUALLY',
   'elk.layered.edgeRouting.selfLoopOrdering': 'STACKED',
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.edge.type': 'ORTHOGONAL',
-  'elk.edgeRouting': 'ORTHOGONAL'
+  'elk.edgeRouting': 'ORTHOGONAL',
+  'elk.layered.thoroughness': '25',
+  'elk.layered.unnecessaryBendpoints': 'true',
+  'elk.layered.edgeLabels.sideSelection': 'ALWAYS_UP',
+  'elk.layered.wrapping.strategy': 'MULTI_EDGE',
+  'elk.spacing.portPort': '10',
+  'elk.port.borderOffset': '2'
 };
 
 /**
@@ -35,36 +44,93 @@ interface ElkGraph extends ElkGraphElement {
 }
 
 /**
- * Convert WorkflowData to ELK graph format
+ * Convert WorkflowData to ELK graph format with enhanced node positioning
  */
 export const convertToElkGraph = (
   workflowData: WorkflowData,
   isHorizontal: boolean = true
 ): ElkGraph => {
-  const nodeWidth = 120;
-  const nodeHeight = isHorizontal ? 80 : 60;
-  const eventNodeWidth = 140;
-  const eventNodeHeight = isHorizontal ? 60 : 80;
+  const baseNodeWidth = 140;
+  const baseNodeHeight = 80;
+  const eventNodeWidth = 160;
+  const eventNodeHeight = 70;
 
-  // Convert nodes with proper dimensions based on type
-  const elkNodes: ElkNode[] = workflowData.nodes.map(node => ({
-    id: node.id,
-    width: node.type === 'status' ? nodeWidth : eventNodeWidth,
-    height: node.type === 'status' ? nodeHeight : eventNodeHeight,
-  }));
+  // Group edges by source-target pairs for bundling
+  const edgeGroups = new Map<string, string[]>();
+  workflowData.edges.forEach(edge => {
+    const key = `${edge.source}-${edge.target}`;
+    const existing = edgeGroups.get(key) || [];
+    existing.push(edge.id);
+    edgeGroups.set(key, existing);
+  });
 
-  // Convert edges to ELK format
-  const elkEdges: ElkExtendedEdge[] = workflowData.edges.map(edge => ({
-    id: edge.id,
-    sources: [edge.source],
-    targets: [edge.target],
-  }));
+  // Convert nodes with proper dimensions and ports
+  const elkNodes: ElkNode[] = workflowData.nodes.map(node => {
+    const isStatus = node.type === 'status';
+    const width = isStatus ? baseNodeWidth : eventNodeWidth;
+    const height = isStatus ? baseNodeHeight : eventNodeHeight;
+    
+    // Count incoming and outgoing edges for port distribution
+    const incomingCount = workflowData.edges.filter(e => e.target === node.id).length;
+    const outgoingCount = workflowData.edges.filter(e => e.source === node.id).length;
+    
+    // Create ports for better edge attachment
+    const ports = [];
+    
+    // Input ports on left side
+    for (let i = 0; i < Math.max(1, incomingCount); i++) {
+      ports.push({
+        id: `${node.id}_in_${i}`,
+        width: 2,
+        height: 2,
+        x: 0,
+        y: (height / (incomingCount + 1)) * (i + 1) - 1
+      });
+    }
+    
+    // Output ports on right side
+    for (let i = 0; i < Math.max(1, outgoingCount); i++) {
+      ports.push({
+        id: `${node.id}_out_${i}`,
+        width: 2,
+        height: 2,
+        x: width - 2,
+        y: (height / (outgoingCount + 1)) * (i + 1) - 1
+      });
+    }
+
+    return {
+      id: node.id,
+      width,
+      height,
+      ports: ports.length > 2 ? ports : undefined, // Only add ports if multiple connections
+    };
+  });
+
+  // Convert edges to ELK format with better separation
+  const elkEdges: ElkExtendedEdge[] = workflowData.edges.map((edge, index) => {
+    const key = `${edge.source}-${edge.target}`;
+    const siblings = edgeGroups.get(key) || [edge.id];
+    const isMultiple = siblings.length > 1;
+    
+    return {
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+      layoutOptions: isMultiple ? {
+        'elk.spacing.edgeEdge': '20',
+        'elk.layered.priority.direction': '1',
+      } : undefined
+    };
+  });
 
   return {
     id: 'root',
     layoutOptions: {
       ...elkOptions,
       'elk.direction': isHorizontal ? 'RIGHT' : 'DOWN',
+      'elk.spacing.nodeNode': isHorizontal ? '180' : '120',
+      'elk.layered.spacing.nodeNodeBetweenLayers': isHorizontal ? '250' : '180',
     },
     children: elkNodes,
     edges: elkEdges,
@@ -124,25 +190,55 @@ export const applyElkLayout = async (
       return pts;
     };
 
-    // Helper to offset first and last segments to separate parallels
-    const applySeparation = (points: { x: number; y: number }[], offset: number) => {
-      if (points.length < 2 || offset === 0) return points;
+    // Enhanced separation logic for parallel edges
+    const applySeparation = (points: { x: number; y: number }[], offset: number, edgeIndex: number, totalEdges: number) => {
+      if (points.length < 2) return points;
       const out = points.map((p) => ({ ...p }));
 
-      // first segment
-      const p0 = out[0], p1 = out[1];
-      const v1x = p1.x - p0.x; const v1y = p1.y - p0.y; const l1 = Math.hypot(v1x, v1y) || 1;
-      const nx1 = -v1y / l1; const ny1 = v1x / l1;
-      out[0].x += nx1 * offset; out[0].y += ny1 * offset;
-      out[1].x += nx1 * offset; out[1].y += ny1 * offset;
-
-      // last segment
-      const n = out.length;
-      const pn1 = out[n - 2], pn = out[n - 1];
-      const v2x = pn.x - pn1.x; const v2y = pn.y - pn1.y; const l2 = Math.hypot(v2x, v2y) || 1;
-      const nx2 = -v2y / l2; const ny2 = v2x / l2;
-      out[n - 2].x += nx2 * offset; out[n - 2].y += ny2 * offset;
-      out[n - 1].x += nx2 * offset; out[n - 1].y += ny2 * offset;
+      // Apply curved separation for better visual distinction
+      const curvature = Math.abs(offset) > 0 ? 0.3 : 0;
+      
+      if (points.length === 2) {
+        // For direct connections, create a curve
+        const [start, end] = out;
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
+        
+        // Add perpendicular offset for curves
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.hypot(dx, dy);
+        const perpX = -dy / length;
+        const perpY = dx / length;
+        
+        // Create curve control points
+        const curveOffset = offset + (curvature * length * 0.2);
+        const cp1X = midX + (perpX * curveOffset);
+        const cp1Y = midY + (perpY * curveOffset);
+        
+        // Insert control point to create smooth curve
+        out.splice(1, 0, { x: cp1X, y: cp1Y });
+      } else {
+        // For multi-segment paths, offset segments
+        for (let i = 0; i < out.length - 1; i++) {
+          const p0 = out[i];
+          const p1 = out[i + 1];
+          const dx = p1.x - p0.x;
+          const dy = p1.y - p0.y;
+          const length = Math.hypot(dx, dy) || 1;
+          const perpX = -dy / length;
+          const perpY = dx / length;
+          
+          // Apply offset with falloff towards ends
+          const segmentOffset = offset * (1 - Math.abs(i - (out.length - 1) / 2) / (out.length / 2)) * 0.8;
+          out[i].x += perpX * segmentOffset;
+          out[i].y += perpY * segmentOffset;
+          if (i === out.length - 2) {
+            out[i + 1].x += perpX * segmentOffset;
+            out[i + 1].y += perpY * segmentOffset;
+          }
+        }
+      }
 
       return out;
     };
@@ -156,8 +252,12 @@ export const applyElkLayout = async (
       const key = `${originalEdge.source}->${originalEdge.target}`;
       const group = groupMap.get(key) || [originalEdge.id];
       const idx = group.indexOf(originalEdge.id);
-      const sep = (idx - (group.length - 1) / 2) * 8; // 8px spacing between parallels
-      const points = applySeparation(basePoints, sep);
+      const totalInGroup = group.length;
+      
+      // Enhanced separation with dynamic spacing based on group size
+      const baseSpacing = Math.min(25, Math.max(12, 100 / totalInGroup));
+      const sep = (idx - (totalInGroup - 1) / 2) * baseSpacing;
+      const points = applySeparation(basePoints, sep, idx, totalInGroup);
 
       const edge: Edge = {
         id: elkEdge.id,
@@ -167,14 +267,14 @@ export const applyElkLayout = async (
         data: { points },
         animated: false,
         style: {
-          stroke: 'hsl(var(--border))',
+          stroke: 'hsl(var(--muted-foreground))',
           strokeWidth: 2,
         },
         markerEnd: {
           type: 'arrowclosed',
           width: 20,
           height: 20,
-          color: 'hsl(var(--border))',
+          color: 'hsl(var(--muted-foreground))',
         },
       };
 
@@ -223,23 +323,23 @@ const createFallbackLayout = (
     target: edge.target,
     type: 'smoothstep',
     animated: false,
-    style: {
-      stroke: 'hsl(var(--border))',
-      strokeWidth: 2,
-    },
-    markerEnd: {
-      type: 'arrowclosed',
-      width: 20,
-      height: 20,
-      color: 'hsl(var(--border))',
-    },
+        style: {
+          stroke: 'hsl(var(--muted-foreground))',
+          strokeWidth: 2,
+        },
+        markerEnd: {
+          type: 'arrowclosed',
+          width: 20,
+          height: 20,
+          color: 'hsl(var(--muted-foreground))',
+        },
   }));
 
   return { nodes, edges };
 };
 
 /**
- * Apply selection styling to edges
+ * Apply enhanced selection styling to edges with smooth animations
  */
 export const applyEdgeSelectionStyling = (
   edges: Edge[],
@@ -262,11 +362,17 @@ export const applyEdgeSelectionStyling = (
         stroke: isSelected 
           ? 'hsl(var(--primary))' 
           : isConnectedToSelectedNode 
-          ? 'hsl(var(--primary) / 0.7)'
-          : 'hsl(var(--border))',
-        strokeWidth: isSelected ? 4 : isConnectedToSelectedNode ? 3 : 2,
+          ? 'hsl(var(--primary) / 0.8)'
+          : 'hsl(var(--muted-foreground))',
+        strokeWidth: isSelected ? 3 : isConnectedToSelectedNode ? 2.5 : 2,
+        filter: isSelected 
+          ? 'drop-shadow(0 0 8px hsl(var(--primary) / 0.5))'
+          : isConnectedToSelectedNode 
+          ? 'drop-shadow(0 0 4px hsl(var(--primary) / 0.3))'
+          : undefined,
+        transition: 'all 0.2s ease-in-out',
       },
-      className: isSelected ? 'animate-edge-pulse' : '',
+      className: isSelected ? 'animate-pulse' : '',
       markerEnd: {
         type: 'arrowclosed',
         width: 20,
@@ -274,8 +380,8 @@ export const applyEdgeSelectionStyling = (
         color: isSelected 
           ? 'hsl(var(--primary))' 
           : isConnectedToSelectedNode 
-          ? 'hsl(var(--primary) / 0.7)'
-          : 'hsl(var(--border))',
+          ? 'hsl(var(--primary) / 0.8)'
+          : 'hsl(var(--muted-foreground))',
       },
     };
   });
