@@ -13,9 +13,9 @@ import {
   Handle,
   Position,
   NodeProps,
-  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import type { ReactFlowInstance } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { applyElkLayout, applyEdgeSelectionStyling, createComplexMockData } from '@/utils/edge-routing';
 import RoutedEdge from '@/components/edges/RoutedEdge';
@@ -916,7 +916,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [useElkLayout, setUseElkLayout] = useState(true);
-  const { fitView } = useReactFlow();
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<any, any> | null>(null);
 
   // ========== WORKFLOW DATA PROCESSING ==========
   
@@ -989,7 +989,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           setEdges(processedEdges);
           setIsInitialized(true);
           // Auto fit view after ELK layout
-          setTimeout(() => fitView({ padding: 0.15, duration: 800 }), 200);
+          setTimeout(() => rfInstance?.fitView({ padding: 0.15, duration: 800 }), 200);
         } catch (error) {
           console.error('ELK layout failed:', error);
         }
@@ -997,7 +997,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
 
       applyElkLayoutAsync();
     }
-  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout, setNodes, setEdges, fitView]);
+  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout, setNodes, setEdges, rfInstance]);
 
   /**
    * Calculate layout and generate positioned nodes/edges
@@ -1133,7 +1133,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       setNodes(processedNodes);
       setIsInitialized(true);
       // Auto fit view after layout
-      setTimeout(() => fitView({ padding: 0.15, duration: 800 }), 200);
+      setTimeout(() => rfInstance?.fitView({ padding: 0.15, duration: 800 }), 200);
     } else {
       console.warn('⚠️ No processed nodes to set');
     }
@@ -1270,7 +1270,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
 
             {/* Fit View Button */}
             <Button
-              onClick={() => fitView({ padding: 0.15, duration: 800 })}
+              onClick={() => rfInstance?.fitView({ padding: 0.15, duration: 800 })}
               variant="outline"
               size="sm"
               className="flex items-center gap-2"
@@ -1314,9 +1314,10 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              onEdgeClick={onEdgeClick}
-              nodeTypes={nodeTypes}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onInit={(instance) => setRfInstance(instance)}
+            nodeTypes={nodeTypes}
               edgeTypes={{ routed: RoutedEdge }}
               connectionLineStyle={{
                 stroke: '#94a3b8',
