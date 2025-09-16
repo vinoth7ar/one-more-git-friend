@@ -12,6 +12,7 @@ import {
   Handle,
   Position,
   NodeProps,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
@@ -914,6 +915,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [useElkLayout, setUseElkLayout] = useState(true);
+  const { fitView } = useReactFlow();
 
   // ========== WORKFLOW DATA PROCESSING ==========
   
@@ -985,6 +987,8 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           setNodes(processedNodes);
           setEdges(processedEdges);
           setIsInitialized(true);
+          // Auto fit view after ELK layout
+          setTimeout(() => fitView({ padding: 0.15, duration: 800 }), 200);
         } catch (error) {
           console.error('ELK layout failed:', error);
         }
@@ -992,7 +996,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
 
       applyElkLayoutAsync();
     }
-  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout, setNodes, setEdges]);
+  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout, setNodes, setEdges, fitView]);
 
   /**
    * Calculate layout and generate positioned nodes/edges
@@ -1127,6 +1131,8 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       console.log('✅ Updating nodes state');
       setNodes(processedNodes);
       setIsInitialized(true);
+      // Auto fit view after layout
+      setTimeout(() => fitView({ padding: 0.15, duration: 800 }), 200);
     } else {
       console.warn('⚠️ No processed nodes to set');
     }
@@ -1258,6 +1264,17 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           >
             <span>🔀</span>
             {useElkLayout ? 'ELK Layout' : 'Smart Layout'}
+          </Button>
+
+          {/* Fit View Button */}
+          <Button
+            onClick={() => fitView({ padding: 0.15, duration: 800 })}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <span>🎯</span>
+            Fit View
           </Button>
         </div>
 

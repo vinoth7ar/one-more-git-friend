@@ -12,12 +12,12 @@ const elk = new ELK();
 // Enhanced ELK layout options for optimal edge routing
 const elkOptions = {
   'elk.algorithm': 'layered',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '200',
-  'elk.spacing.nodeNode': '150',
-  'elk.spacing.edgeNode': '50',
-  'elk.spacing.edgeEdge': '15',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '300',
+  'elk.spacing.nodeNode': '250',
+  'elk.spacing.edgeNode': '80',
+  'elk.spacing.edgeEdge': '25',
   'elk.direction': 'RIGHT',
-  'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+  'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
   'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
   'elk.layered.edgeRouting.selfLoopDistribution': 'EQUALLY',
@@ -25,12 +25,14 @@ const elkOptions = {
   'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
   'elk.edge.type': 'ORTHOGONAL',
   'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.layered.thoroughness': '25',
-  'elk.layered.unnecessaryBendpoints': 'true',
+  'elk.layered.thoroughness': '30',
+  'elk.layered.unnecessaryBendpoints': 'false',
   'elk.layered.edgeLabels.sideSelection': 'ALWAYS_UP',
   'elk.layered.wrapping.strategy': 'MULTI_EDGE',
-  'elk.spacing.portPort': '10',
-  'elk.port.borderOffset': '2'
+  'elk.spacing.portPort': '15',
+  'elk.port.borderOffset': '5',
+  'elk.layered.cycleBreaking.strategy': 'GREEDY',
+  'elk.layered.feedbackEdges': 'true'
 };
 
 /**
@@ -129,8 +131,9 @@ export const convertToElkGraph = (
     layoutOptions: {
       ...elkOptions,
       'elk.direction': isHorizontal ? 'RIGHT' : 'DOWN',
-      'elk.spacing.nodeNode': isHorizontal ? '180' : '120',
-      'elk.layered.spacing.nodeNodeBetweenLayers': isHorizontal ? '250' : '180',
+      'elk.spacing.nodeNode': isHorizontal ? '300' : '200',
+      'elk.layered.spacing.nodeNodeBetweenLayers': isHorizontal ? '400' : '300',
+      'elk.padding': '[top=50,left=50,bottom=50,right=50]',
     },
     children: elkNodes,
     edges: elkEdges,
@@ -178,10 +181,20 @@ export const applyElkLayout = async (
       groupMap.set(key, arr);
     });
 
-    // Helper to collect points from ELK sections
-    const getPoints = (elkEdge: any): { x: number; y: number }[] => {
+    // Helper to collect points from ELK sections with proper connection handling
+    const getPoints = (elkEdge: any, sourceNode: any, targetNode: any): { x: number; y: number }[] => {
       const section = elkEdge.sections && elkEdge.sections[0];
-      if (!section) return [];
+      
+      if (!section || !sourceNode || !targetNode) {
+        // Fallback: direct connection from node centers
+        const sourceX = (sourceNode?.x || 0) + (sourceNode?.width || 0) / 2;
+        const sourceY = (sourceNode?.y || 0) + (sourceNode?.height || 0) / 2;
+        const targetX = (targetNode?.x || 0) + (targetNode?.width || 0) / 2;
+        const targetY = (targetNode?.y || 0) + (targetNode?.height || 0) / 2;
+        return [{ x: sourceX, y: sourceY }, { x: targetX, y: targetY }];
+      }
+      
+      // Use ELK routing points
       const pts: { x: number; y: number }[] = [
         section.startPoint,
         ...(section.bendPoints || []),
@@ -248,7 +261,11 @@ export const applyElkLayout = async (
       const originalEdge = workflowData.edges.find(e => e.id === elkEdge.id);
       if (!originalEdge) throw new Error(`Edge ${elkEdge.id} not found in original data`);
 
-      const basePoints = getPoints(elkEdge);
+      // Find source and target nodes in layouted graph
+      const sourceNode = layoutedGraph.children?.find((n: any) => n.id === originalEdge.source);
+      const targetNode = layoutedGraph.children?.find((n: any) => n.id === originalEdge.target);
+      
+      const basePoints = getPoints(elkEdge, sourceNode, targetNode);
       const key = `${originalEdge.source}->${originalEdge.target}`;
       const group = groupMap.get(key) || [originalEdge.id];
       const idx = group.indexOf(originalEdge.id);
