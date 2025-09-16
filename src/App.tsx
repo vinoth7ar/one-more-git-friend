@@ -3,6 +3,7 @@ import { useState } from "react";
 import NotFound from "./pages/NotFound";
 import { WorkflowManager } from "@/components/WorkflowManager";
 import { Button } from "@/components/ui/button";
+import { ReactFlowProvider } from "@xyflow/react";
 
 // Example of real-time data structure (replace with your actual API response)
 const sampleRealTimeData = {
@@ -75,19 +76,23 @@ const App = () => {
             <Route 
               path="/" 
               element={
-                <WorkflowManager 
-                  workflowData={useRealTimeData ? currentData : undefined}
-                  useExternalData={useRealTimeData}
-                />
+                <ReactFlowProvider>
+                  <WorkflowManager 
+                    workflowData={useRealTimeData ? currentData : undefined}
+                    useExternalData={useRealTimeData}
+                  />
+                </ReactFlowProvider>
               } 
             />
             <Route 
               path="/visualization/:type/:id" 
               element={
-                <WorkflowManager 
-                  workflowData={useRealTimeData ? currentData : undefined}
-                  useExternalData={useRealTimeData}
-                />
+                <ReactFlowProvider>
+                  <WorkflowManager 
+                    workflowData={useRealTimeData ? currentData : undefined}
+                    useExternalData={useRealTimeData}
+                  />
+                </ReactFlowProvider>
               } 
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
