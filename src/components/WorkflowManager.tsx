@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect, memo, useMemo } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   addEdge,
   Controls,
   Background,
@@ -1205,162 +1206,164 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   }
 
   return (
-    <div className="w-full h-screen bg-gray-50">
-      {/* Workflow Header Section */}
-      <div className="bg-black text-white px-6 py-4 flex items-center gap-3">
-        <div className="w-2 h-2 rounded-full bg-white"></div>
-        <h1 className="text-lg font-semibold">
-          {currentWorkflowData.name}
-        </h1>
-      </div>
-
-      {/* Controls Section */}
-      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-4">
-          {/* Workflow Selection - Only show for mock data */}
-          {!useExternalData && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Workflow:</label>
-              <select 
-                value={selectedWorkflow}
-                onChange={(e) => handleWorkflowChange(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {Object.entries(mockWorkflows).map(([id, workflow]) => (
-                  <option key={id} value={id}>
-                    {workflow.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          
-          {/* External Data Indicator */}
-          {useExternalData && currentWorkflowData && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Workflow:</span>
-              <span className="text-sm text-blue-600 font-medium">{currentWorkflowData.name}</span>
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
-            </div>
-          )}
-
-          {/* Layout Toggle */}
-          <Button
-            onClick={handleLayoutChange}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <span>⚡</span>
-            {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
-          </Button>
-
-          {/* ELK Layout Toggle */}
-          <Button
-            onClick={() => setUseElkLayout(!useElkLayout)}
-            variant={useElkLayout ? "default" : "outline"}
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <span>🔀</span>
-            {useElkLayout ? 'ELK Layout' : 'Smart Layout'}
-          </Button>
-
-          {/* Fit View Button */}
-          <Button
-            onClick={() => fitView({ padding: 0.15, duration: 800 })}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <span>🎯</span>
-            Fit View
-          </Button>
+    <ReactFlowProvider>
+      <div className="w-full h-screen bg-gray-50">
+        {/* Workflow Header Section */}
+        <div className="bg-black text-white px-6 py-4 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-white"></div>
+          <h1 className="text-lg font-semibold">
+            {currentWorkflowData.name}
+          </h1>
         </div>
 
-        {/* Legend Section */}
-        <div className="flex items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center">
-              <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
+        {/* Controls Section */}
+        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            {/* Workflow Selection - Only show for mock data */}
+            {!useExternalData && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Workflow:</label>
+                <select 
+                  value={selectedWorkflow}
+                  onChange={(e) => handleWorkflowChange(e.target.value)}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Object.entries(mockWorkflows).map(([id, workflow]) => (
+                    <option key={id} value={id}>
+                      {workflow.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* External Data Indicator */}
+            {useExternalData && currentWorkflowData && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Workflow:</span>
+                <span className="text-sm text-blue-600 font-medium">{currentWorkflowData.name}</span>
+                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
+              </div>
+            )}
+
+            {/* Layout Toggle */}
+            <Button
+              onClick={handleLayoutChange}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <span>⚡</span>
+              {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+            </Button>
+
+            {/* ELK Layout Toggle */}
+            <Button
+              onClick={() => setUseElkLayout(!useElkLayout)}
+              variant={useElkLayout ? "default" : "outline"}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <span>🔀</span>
+              {useElkLayout ? 'ELK Layout' : 'Smart Layout'}
+            </Button>
+
+            {/* Fit View Button */}
+            <Button
+              onClick={() => fitView({ padding: 0.15, duration: 800 })}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <span>🎯</span>
+              Fit View
+            </Button>
+          </div>
+
+          {/* Legend Section */}
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center">
+                <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
+              </div>
+              <span className="text-gray-700">Status Node</span>
             </div>
-            <span className="text-gray-700">Status Node</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-4 bg-slate-50 border-2 border-slate-300 flex items-center justify-center">
-              <div className="w-2 h-1 bg-slate-600"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-4 bg-slate-50 border-2 border-slate-300 flex items-center justify-center">
+                <div className="w-2 h-1 bg-slate-600"></div>
+              </div>
+              <span className="text-gray-700">Event Node</span>
             </div>
-            <span className="text-gray-700">Event Node</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-px bg-gray-400"></div>
-            <span className="text-gray-700">Solid Edge</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-px border-t border-dashed border-gray-400"></div>
-            <span className="text-gray-700">Backward Flow</span>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-px bg-gray-400"></div>
+              <span className="text-gray-700">Solid Edge</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-px border-t border-dashed border-gray-400"></div>
+              <span className="text-gray-700">Backward Flow</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Workflow Canvas with Border */}
-      <div className="p-4">
-        <div className="relative w-full h-[calc(100vh-200px)] border-2 border-gray-300 bg-white rounded-lg shadow-sm">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onEdgeClick={onEdgeClick}
-            nodeTypes={nodeTypes}
-            edgeTypes={{ routed: RoutedEdge }}
-            connectionLineStyle={{
-              stroke: '#94a3b8',
-              strokeWidth: 2,
-            }}
-            defaultEdgeOptions={{
-              style: {
+        {/* Main Workflow Canvas with Border */}
+        <div className="p-4">
+          <div className="relative w-full h-[calc(100vh-200px)] border-2 border-gray-300 bg-white rounded-lg shadow-sm">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onEdgeClick={onEdgeClick}
+              nodeTypes={nodeTypes}
+              edgeTypes={{ routed: RoutedEdge }}
+              connectionLineStyle={{
                 stroke: '#94a3b8',
                 strokeWidth: 2,
-              },
-              markerEnd: {
-                type: 'arrowclosed',
-                width: 20,
-                height: 20,
-                color: '#94a3b8',
-              },
-            }}
-            fitView
-            fitViewOptions={{
-              padding: 0.2,
-              maxZoom: 1.5,
-              minZoom: 0.1,
-            }}
-            minZoom={0.1}
-            maxZoom={2}
-            attributionPosition="top-right"
-            selectNodesOnDrag={false}
-          >
-            {/* Background Pattern */}
-            <Background
-              color="#e2e8f0"
-              gap={20}
-              size={1}
-            />
-            
-            {/* React Flow Controls - Must be inside ReactFlow component */}
-            <Controls
-              position="bottom-right"
-              className="bg-white border border-gray-300 rounded-lg shadow-lg"
-              showZoom={true}
-              showFitView={true}
-              showInteractive={true}
-            />
-          </ReactFlow>
+              }}
+              defaultEdgeOptions={{
+                style: {
+                  stroke: '#94a3b8',
+                  strokeWidth: 2,
+                },
+                markerEnd: {
+                  type: 'arrowclosed',
+                  width: 20,
+                  height: 20,
+                  color: '#94a3b8',
+                },
+              }}
+              fitView
+              fitViewOptions={{
+                padding: 0.2,
+                maxZoom: 1.5,
+                minZoom: 0.1,
+              }}
+              minZoom={0.1}
+              maxZoom={2}
+              attributionPosition="top-right"
+              selectNodesOnDrag={false}
+            >
+              {/* Background Pattern */}
+              <Background
+                color="#e2e8f0"
+                gap={20}
+                size={1}
+              />
+              
+              {/* React Flow Controls - Must be inside ReactFlow component */}
+              <Controls
+                position="bottom-right"
+                className="bg-white border border-gray-300 rounded-lg shadow-lg"
+                showZoom={true}
+                showFitView={true}
+                showInteractive={true}
+              />
+            </ReactFlow>
+          </div>
         </div>
       </div>
-    </div>
+    </ReactFlowProvider>
   );
 };
