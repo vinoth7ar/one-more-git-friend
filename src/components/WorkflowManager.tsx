@@ -584,7 +584,9 @@ export const calculateSmartLayout = (
 export const generateSmartEdges = (
   workflowData: WorkflowData,
   layout: ReturnType<typeof calculateSmartLayout>,
-  isHorizontal: boolean = true
+  isHorizontal: boolean = true,
+  selectedNodeId: string | null = null,
+  selectedEdgeId: string | null = null
 ): Edge[] => {
   const { positions, levels } = layout;
   console.log('🔗 Generating smart edges for', workflowData.edges.length, 'edge definitions');
@@ -609,6 +611,10 @@ export const generateSmartEdges = (
     
     // Detect backward flow (connections that go against main hierarchy)
     const isBackwardFlow = targetLevel <= sourceLevel && sourceLevel > 0;
+    
+    // Check if this edge should be highlighted
+    const isConnectedToSelectedNode = selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId);
+    const isSelectedEdge = selectedEdgeId === edge.id;
     
     console.log(`✅ Processing edge ${edge.id}: ${edge.source} → ${edge.target} (levels: ${sourceLevel} → ${targetLevel})`);
     
@@ -637,6 +643,32 @@ export const generateSmartEdges = (
       }
     }
     
+    // Enhanced styling based on selection and highlighting
+    let edgeStyle: any = {
+      stroke: '#94a3b8',
+      strokeWidth: 2,
+    };
+    
+    if (isSelectedEdge) {
+      edgeStyle = {
+        stroke: '#3b82f6',
+        strokeWidth: 3,
+      };
+    } else if (isConnectedToSelectedNode) {
+      edgeStyle = {
+        stroke: '#f59e0b',
+        strokeWidth: 3,
+      };
+    }
+    
+    // Add dotted animation for backward flows
+    if (isBackwardFlow) {
+      edgeStyle = {
+        ...edgeStyle,
+        strokeDasharray: '8,4',
+      };
+    }
+    
     return {
       id: edge.id,
       source: edge.source,
@@ -644,22 +676,14 @@ export const generateSmartEdges = (
       sourceHandle,
       targetHandle,
       label: edge.label,
-      style: {
-        stroke: '#94a3b8',
-        strokeWidth: 2,
-        // Add subtle animation for backward flows to highlight them
-        ...(isBackwardFlow && {
-          strokeDasharray: '5,5',
-          animation: 'dash 1s linear infinite',
-        }),
-      },
+      style: edgeStyle,
       markerEnd: {
         type: 'arrowclosed',
         width: 20,
         height: 20,
-        color: '#94a3b8',
+        color: isSelectedEdge ? '#3b82f6' : isConnectedToSelectedNode ? '#f59e0b' : '#94a3b8',
       },
-      type: isBackwardFlow ? 'smoothstep' : 'default',
+      type: isBackwardFlow ? 'smoothstep' : 'bezier',
     };
   }).filter(Boolean) as Edge[];
   
@@ -719,9 +743,8 @@ const StatusNode = memo(({ data, selected }: NodeProps) => {
     <div 
       className={`
         relative w-24 h-24 rounded-full border-2 
-        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
-        bg-amber-50 border-amber-300 
+        ${selected ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400' : 'bg-amber-50 border-amber-300'}
+        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400' : ''}
         flex items-center justify-center
         cursor-pointer hover:shadow-lg transition-all duration-200
         shadow-md
@@ -767,11 +790,15 @@ const StatusNode = memo(({ data, selected }: NodeProps) => {
       
       {/* Node content */}
       <div className="text-center">
-        <div className="text-xs font-medium text-amber-800 leading-tight">
+        <div className={`text-xs font-medium leading-tight ${
+          selected ? 'text-blue-900' : 'text-amber-900'
+        } ${data.isHighlighted ? 'text-yellow-900' : ''}`}>
           {data.label as string}
         </div>
         {data.secondaryLabel && (
-          <div className="text-xs text-amber-600 mt-1">
+          <div className={`text-xs mt-1 ${
+            selected ? 'text-blue-700' : 'text-amber-700'
+          } ${data.isHighlighted ? 'text-yellow-700' : ''}`}>
             {data.secondaryLabel as string}
           </div>
         )}
@@ -791,10 +818,9 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
     <div 
       className={`
         relative px-4 py-3 min-w-[120px] h-16
-        rounded-lg border-2
-        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
-        bg-slate-50 border-slate-300
+        border-2
+        ${selected ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400' : 'bg-slate-50 border-slate-300'}
+        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400' : ''}
         flex items-center justify-center
         cursor-pointer hover:shadow-lg transition-all duration-200
         shadow-md
@@ -840,11 +866,15 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
       
       {/* Node content */}
       <div className="text-center">
-        <div className="text-sm font-medium text-slate-700">
+        <div className={`text-sm font-medium ${
+          selected ? 'text-blue-900' : 'text-slate-800'
+        } ${data.isHighlighted ? 'text-yellow-900' : ''}`}>
           {data.label as string}
         </div>
         {data.secondaryLabel && (
-          <div className="text-xs text-slate-500 mt-1">
+          <div className={`text-xs mt-1 ${
+            selected ? 'text-blue-700' : 'text-slate-600'
+          } ${data.isHighlighted ? 'text-yellow-700' : ''}`}>
             {data.secondaryLabel as string}
           </div>
         )}
@@ -878,6 +908,8 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   // ========== WORKFLOW DATA PROCESSING ==========
   
@@ -952,9 +984,17 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
       console.log('✅ Smart layout calculation complete');
       
-      // Generate React Flow nodes with proper positioning
-      const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal);
-      const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
+      // Generate React Flow nodes with proper positioning and highlighting
+      const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal).map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
+            edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
+          ) : false
+        }
+      }));
+      const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal, selectedNodeId, selectedEdgeId);
       
       console.log('✅ React Flow generation complete:', {
         nodeCount: reactFlowNodes.length,
@@ -974,7 +1014,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       console.groupEnd();
       return { processedNodes: [], processedEdges: [] };
     }
-  }, [currentWorkflowData, isHorizontal]);
+  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId]);
 
   /**
    * Update React Flow state when processed data changes
@@ -1033,6 +1073,24 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     setIsHorizontal(!isHorizontal);
     setIsInitialized(false);
   }, [isHorizontal]);
+
+  /**
+   * Handle node selection to highlight connected edges
+   */
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    console.log('🔵 Node clicked:', node.id);
+    setSelectedNodeId(selectedNodeId === node.id ? null : node.id);
+    setSelectedEdgeId(null);
+  }, [selectedNodeId]);
+
+  /**
+   * Handle edge selection to highlight connected nodes
+   */
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    console.log('🔗 Edge clicked:', edge.id);
+    setSelectedEdgeId(selectedEdgeId === edge.id ? null : edge.id);
+    setSelectedNodeId(null);
+  }, [selectedEdgeId]);
 
   // ========== RENDER ==========
   
@@ -1097,9 +1155,28 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           </Button>
         </div>
 
-        {/* Modified Entity Section */}
-        <div className="text-sm text-gray-600">
-          Modified Entity: <span className="font-medium text-gray-900">Workflow Definition</span>
+        {/* Legend Section */}
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center">
+              <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
+            </div>
+            <span className="text-gray-700">Status Node</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-4 bg-slate-50 border-2 border-slate-300 flex items-center justify-center">
+              <div className="w-2 h-1 bg-slate-600"></div>
+            </div>
+            <span className="text-gray-700">Event Node</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-px bg-gray-400"></div>
+            <span className="text-gray-700">Solid Edge</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-px border-t border-dashed border-gray-400"></div>
+            <span className="text-gray-700">Backward Flow</span>
+          </div>
         </div>
       </div>
 
@@ -1112,6 +1189,8 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
             connectionLineStyle={{
               stroke: '#94a3b8',
@@ -1138,6 +1217,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
             minZoom={0.1}
             maxZoom={2}
             attributionPosition="top-right"
+            selectNodesOnDrag={false}
           >
             {/* Background Pattern */}
             <Background
