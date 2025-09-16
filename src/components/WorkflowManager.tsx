@@ -1,7 +1,6 @@
 import { useCallback, useState, useEffect, memo, useMemo } from 'react';
 import {
   ReactFlow,
-  ReactFlowProvider,
   addEdge,
   Controls,
   Background,
@@ -15,10 +14,7 @@ import {
   NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { ReactFlowInstance } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
-import { applyElkLayout, applyEdgeSelectionStyling, createComplexMockData } from '@/utils/edge-routing';
-import RoutedEdge from '@/components/edges/RoutedEdge';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -136,8 +132,7 @@ export const mockWorkflows: Record<string, WorkflowData> = {
       { id: "e14", source: "approved", target: "closing", label: "" },
       { id: "e15", source: "closing", target: "funding", label: "" }
     ]
-  },
-  'complex-routing-demo': createComplexMockData()
+  }
 };
 
 export const defaultWorkflow = 'ebm-version';
@@ -589,9 +584,7 @@ export const calculateSmartLayout = (
 export const generateSmartEdges = (
   workflowData: WorkflowData,
   layout: ReturnType<typeof calculateSmartLayout>,
-  isHorizontal: boolean = true,
-  selectedNodeId: string | null = null,
-  selectedEdgeId: string | null = null
+  isHorizontal: boolean = true
 ): Edge[] => {
   const { positions, levels } = layout;
   console.log('🔗 Generating smart edges for', workflowData.edges.length, 'edge definitions');
@@ -616,10 +609,6 @@ export const generateSmartEdges = (
     
     // Detect backward flow (connections that go against main hierarchy)
     const isBackwardFlow = targetLevel <= sourceLevel && sourceLevel > 0;
-    
-    // Check if this edge should be highlighted
-    const isConnectedToSelectedNode = selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId);
-    const isSelectedEdge = selectedEdgeId === edge.id;
     
     console.log(`✅ Processing edge ${edge.id}: ${edge.source} → ${edge.target} (levels: ${sourceLevel} → ${targetLevel})`);
     
@@ -648,32 +637,6 @@ export const generateSmartEdges = (
       }
     }
     
-    // Enhanced styling based on selection and highlighting
-    let edgeStyle: any = {
-      stroke: '#94a3b8',
-      strokeWidth: 2,
-    };
-    
-    if (isSelectedEdge) {
-      edgeStyle = {
-        stroke: '#3b82f6',
-        strokeWidth: 3,
-      };
-    } else if (isConnectedToSelectedNode) {
-      edgeStyle = {
-        stroke: '#f59e0b',
-        strokeWidth: 3,
-      };
-    }
-    
-    // Add dotted animation for backward flows
-    if (isBackwardFlow) {
-      edgeStyle = {
-        ...edgeStyle,
-        strokeDasharray: '8,4',
-      };
-    }
-    
     return {
       id: edge.id,
       source: edge.source,
@@ -681,14 +644,22 @@ export const generateSmartEdges = (
       sourceHandle,
       targetHandle,
       label: edge.label,
-      style: edgeStyle,
+      style: {
+        stroke: '#94a3b8',
+        strokeWidth: 2,
+        // Add subtle animation for backward flows to highlight them
+        ...(isBackwardFlow && {
+          strokeDasharray: '5,5',
+          animation: 'dash 1s linear infinite',
+        }),
+      },
       markerEnd: {
         type: 'arrowclosed',
         width: 20,
         height: 20,
-        color: isSelectedEdge ? '#3b82f6' : isConnectedToSelectedNode ? '#f59e0b' : '#94a3b8',
+        color: '#94a3b8',
       },
-      type: isBackwardFlow ? 'smoothstep' : 'bezier',
+      type: isBackwardFlow ? 'smoothstep' : 'default',
     };
   }).filter(Boolean) as Edge[];
   
@@ -748,8 +719,9 @@ const StatusNode = memo(({ data, selected }: NodeProps) => {
     <div 
       className={`
         relative w-24 h-24 rounded-full border-2 
-        ${selected ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400' : 'bg-amber-50 border-amber-300'}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400' : ''}
+        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
+        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
+        bg-amber-50 border-amber-300 
         flex items-center justify-center
         cursor-pointer hover:shadow-lg transition-all duration-200
         shadow-md
@@ -795,15 +767,11 @@ const StatusNode = memo(({ data, selected }: NodeProps) => {
       
       {/* Node content */}
       <div className="text-center">
-        <div className={`text-xs font-medium leading-tight ${
-          selected ? 'text-blue-900' : 'text-amber-900'
-        } ${data.isHighlighted ? 'text-yellow-900' : ''}`}>
+        <div className="text-xs font-medium text-amber-800 leading-tight">
           {data.label as string}
         </div>
         {data.secondaryLabel && (
-          <div className={`text-xs mt-1 ${
-            selected ? 'text-blue-700' : 'text-amber-700'
-          } ${data.isHighlighted ? 'text-yellow-700' : ''}`}>
+          <div className="text-xs text-amber-600 mt-1">
             {data.secondaryLabel as string}
           </div>
         )}
@@ -823,9 +791,10 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
     <div 
       className={`
         relative px-4 py-3 min-w-[120px] h-16
-        border-2
-        ${selected ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400' : 'bg-slate-50 border-slate-300'}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400' : ''}
+        rounded-lg border-2
+        ${selected ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}
+        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70' : ''}
+        bg-slate-50 border-slate-300
         flex items-center justify-center
         cursor-pointer hover:shadow-lg transition-all duration-200
         shadow-md
@@ -871,15 +840,11 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
       
       {/* Node content */}
       <div className="text-center">
-        <div className={`text-sm font-medium ${
-          selected ? 'text-blue-900' : 'text-slate-800'
-        } ${data.isHighlighted ? 'text-yellow-900' : ''}`}>
+        <div className="text-sm font-medium text-slate-700">
           {data.label as string}
         </div>
         {data.secondaryLabel && (
-          <div className={`text-xs mt-1 ${
-            selected ? 'text-blue-700' : 'text-slate-600'
-          } ${data.isHighlighted ? 'text-yellow-700' : ''}`}>
+          <div className="text-xs text-slate-500 mt-1">
             {data.secondaryLabel as string}
           </div>
         )}
@@ -913,10 +878,6 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [useElkLayout, setUseElkLayout] = useState(true);
-  const [rfInstance, setRfInstance] = useState<ReactFlowInstance<any, any> | null>(null);
 
   // ========== WORKFLOW DATA PROCESSING ==========
   
@@ -966,39 +927,6 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     }
   }, [selectedWorkflow, workflowData, useExternalData]);
 
-  // ========== ELK LAYOUT EFFECT ==========
-  useEffect(() => {
-    if (useElkLayout && currentWorkflowData) {
-      const applyElkLayoutAsync = async () => {
-        try {
-          const { nodes: elkNodes, edges: elkEdges } = await applyElkLayout(currentWorkflowData, isHorizontal);
-          
-          const processedNodes = elkNodes.map(node => ({
-            ...node,
-            data: {
-              ...node.data,
-              isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
-                edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
-              ) : false
-            }
-          }));
-
-          const processedEdges = applyEdgeSelectionStyling(elkEdges, selectedNodeId, selectedEdgeId, currentWorkflowData);
-
-          setNodes(processedNodes);
-          setEdges(processedEdges);
-          setIsInitialized(true);
-          // Auto fit view after ELK layout
-          setTimeout(() => rfInstance?.fitView({ padding: 0.15, duration: 800 }), 200);
-        } catch (error) {
-          console.error('ELK layout failed:', error);
-        }
-      };
-
-      applyElkLayoutAsync();
-    }
-  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout, setNodes, setEdges, rfInstance]);
-
   /**
    * Calculate layout and generate positioned nodes/edges
    * This handles the visual positioning and routing logic
@@ -1006,7 +934,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const { processedNodes, processedEdges } = useMemo(() => {
     console.group('🧮 LAYOUT CALCULATION MEMO');
     console.log('📐 Starting layout calculation...');
-    console.log('🔧 Layout params:', { isHorizontal, hasData: !!currentWorkflowData, useElkLayout });
+    console.log('🔧 Layout params:', { isHorizontal, hasData: !!currentWorkflowData });
     
     if (!currentWorkflowData) {
       console.warn('⚠️ No workflow data available for layout calculation');
@@ -1016,93 +944,25 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
 
     console.log('📋 Input workflow data for layout:', JSON.stringify(currentWorkflowData, null, 2));
     
-    // Return promise-based layout calculation
-    const calculateLayout = async () => {
-      try {
-        if (useElkLayout) {
-          console.log('🔧 Using ELK-based layout');
-          const { nodes: elkNodes, edges: elkEdges } = await applyElkLayout(currentWorkflowData, isHorizontal);
-          
-          // Add highlighting to nodes
-          const processedNodes = elkNodes.map(node => ({
-            ...node,
-            data: {
-              ...node.data,
-              isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
-                edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
-              ) : false
-            }
-          }));
-
-          // Apply selection styling to edges
-          const processedEdges = applyEdgeSelectionStyling(elkEdges, selectedNodeId, selectedEdgeId, currentWorkflowData);
-
-          console.log('✅ ELK layout calculation complete');
-          console.groupEnd();
-          return { processedNodes, processedEdges };
-        } else {
-          // Use original smart layout algorithm
-          console.log('🔧 Using original smart layout');
-          const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
-          const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
-          
-          const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal).map(node => ({
-            ...node,
-            data: {
-              ...node.data,
-              isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
-                edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
-              ) : false
-            }
-          }));
-          const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal, selectedNodeId, selectedEdgeId);
-          
-          console.log('✅ Smart layout calculation complete');
-          console.groupEnd();
-          return {
-            processedNodes: reactFlowNodes,
-            processedEdges: reactFlowEdges
-          };
-        }
-      } catch (error) {
-        console.error('❌ Layout calculation failed:', error);
-        console.groupEnd();
-        return { processedNodes: [], processedEdges: [] };
-      }
-    };
-
-    // Since we can't use async in useMemo, we'll need to handle this differently
-    // For now, use the original layout and add a toggle for ELK
-    if (useElkLayout) {
-      // Return empty for now, will be handled by useEffect
-      return { processedNodes: [], processedEdges: [] };
-    }
-    
     try {
-      // Use original smart layout algorithm
+      // Use our smart layout algorithm
       const layoutConfig = { ...defaultLayoutConfig, isHorizontal };
       console.log('🔧 Layout config:', layoutConfig);
       
       const layout = calculateSmartLayout(currentWorkflowData, layoutConfig);
       console.log('✅ Smart layout calculation complete');
       
-      // Generate React Flow nodes with proper positioning and highlighting
-      const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal).map(node => ({
-        ...node,
-        data: {
-          ...node.data,
-          isHighlighted: selectedEdgeId ? currentWorkflowData.edges.some(edge => 
-            edge.id === selectedEdgeId && (edge.source === node.id || edge.target === node.id)
-          ) : false
-        }
-      }));
-      const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal, selectedNodeId, selectedEdgeId);
+      // Generate React Flow nodes with proper positioning
+      const reactFlowNodes = generateReactFlowNodes(currentWorkflowData, layout, isHorizontal);
+      const reactFlowEdges = generateSmartEdges(currentWorkflowData, layout, isHorizontal);
       
       console.log('✅ React Flow generation complete:', {
         nodeCount: reactFlowNodes.length,
         edgeCount: reactFlowEdges.length,
         isHorizontal
       });
+      console.log('🔵 Generated nodes:', reactFlowNodes);
+      console.log('🔗 Generated edges:', reactFlowEdges);
       
       console.groupEnd();
       return {
@@ -1114,7 +974,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       console.groupEnd();
       return { processedNodes: [], processedEdges: [] };
     }
-  }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId, useElkLayout]);
+  }, [currentWorkflowData, isHorizontal]);
 
   /**
    * Update React Flow state when processed data changes
@@ -1132,8 +992,6 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       console.log('✅ Updating nodes state');
       setNodes(processedNodes);
       setIsInitialized(true);
-      // Auto fit view after layout
-      setTimeout(() => rfInstance?.fitView({ padding: 0.15, duration: 800 }), 200);
     } else {
       console.warn('⚠️ No processed nodes to set');
     }
@@ -1176,24 +1034,6 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     setIsInitialized(false);
   }, [isHorizontal]);
 
-  /**
-   * Handle node selection to highlight connected edges
-   */
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    console.log('🔵 Node clicked:', node.id);
-    setSelectedNodeId(selectedNodeId === node.id ? null : node.id);
-    setSelectedEdgeId(null);
-  }, [selectedNodeId]);
-
-  /**
-   * Handle edge selection to highlight connected nodes
-   */
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
-    console.log('🔗 Edge clicked:', edge.id);
-    setSelectedEdgeId(selectedEdgeId === edge.id ? null : edge.id);
-    setSelectedNodeId(null);
-  }, [selectedEdgeId]);
-
   // ========== RENDER ==========
   
   // Loading state while data is being processed
@@ -1206,165 +1046,117 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   }
 
   return (
-    <ReactFlowProvider>
-      <div className="w-full h-screen bg-gray-50">
-        {/* Workflow Header Section */}
-        <div className="bg-black text-white px-6 py-4 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-white"></div>
-          <h1 className="text-lg font-semibold">
-            {currentWorkflowData.name}
-          </h1>
+    <div className="w-full h-screen bg-gray-50">
+      {/* Workflow Header Section */}
+      <div className="bg-black text-white px-6 py-4 flex items-center gap-3">
+        <div className="w-2 h-2 rounded-full bg-white"></div>
+        <h1 className="text-lg font-semibold">
+          {currentWorkflowData.name}
+        </h1>
+      </div>
+
+      {/* Controls Section */}
+      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+        <div className="flex items-center gap-4">
+          {/* Workflow Selection - Only show for mock data */}
+          {!useExternalData && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Workflow:</label>
+              <select 
+                value={selectedWorkflow}
+                onChange={(e) => handleWorkflowChange(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.entries(mockWorkflows).map(([id, workflow]) => (
+                  <option key={id} value={id}>
+                    {workflow.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          {/* External Data Indicator */}
+          {useExternalData && currentWorkflowData && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Workflow:</span>
+              <span className="text-sm text-blue-600 font-medium">{currentWorkflowData.name}</span>
+              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
+            </div>
+          )}
+
+          {/* Layout Toggle */}
+          <Button
+            onClick={handleLayoutChange}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <span>⚡</span>
+            {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+          </Button>
         </div>
 
-        {/* Controls Section */}
-        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            {/* Workflow Selection - Only show for mock data */}
-            {!useExternalData && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Workflow:</label>
-                <select 
-                  value={selectedWorkflow}
-                  onChange={(e) => handleWorkflowChange(e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {Object.entries(mockWorkflows).map(([id, workflow]) => (
-                    <option key={id} value={id}>
-                      {workflow.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            
-            {/* External Data Indicator */}
-            {useExternalData && currentWorkflowData && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Workflow:</span>
-                <span className="text-sm text-blue-600 font-medium">{currentWorkflowData.name}</span>
-                <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
-              </div>
-            )}
-
-            {/* Layout Toggle */}
-            <Button
-              onClick={handleLayoutChange}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <span>⚡</span>
-              {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
-            </Button>
-
-            {/* ELK Layout Toggle */}
-            <Button
-              onClick={() => setUseElkLayout(!useElkLayout)}
-              variant={useElkLayout ? "default" : "outline"}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <span>🔀</span>
-              {useElkLayout ? 'ELK Layout' : 'Smart Layout'}
-            </Button>
-
-            {/* Fit View Button */}
-            <Button
-              onClick={() => rfInstance?.fitView({ padding: 0.15, duration: 800 })}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <span>🎯</span>
-              Fit View
-            </Button>
-          </div>
-
-          {/* Legend Section */}
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center">
-                <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
-              </div>
-              <span className="text-gray-700">Status Node</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-4 bg-slate-50 border-2 border-slate-300 flex items-center justify-center">
-                <div className="w-2 h-1 bg-slate-600"></div>
-              </div>
-              <span className="text-gray-700">Event Node</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-px bg-gray-400"></div>
-              <span className="text-gray-700">Solid Edge</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-px border-t border-dashed border-gray-400"></div>
-              <span className="text-gray-700">Backward Flow</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Workflow Canvas with Border */}
-        <div className="p-4">
-          <div className="relative w-full h-[calc(100vh-200px)] border-2 border-gray-300 bg-white rounded-lg shadow-sm">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onEdgeClick={onEdgeClick}
-            onInit={(instance) => setRfInstance(instance)}
-            nodeTypes={nodeTypes}
-              edgeTypes={{ routed: RoutedEdge }}
-              connectionLineStyle={{
-                stroke: '#94a3b8',
-                strokeWidth: 2,
-              }}
-              defaultEdgeOptions={{
-                style: {
-                  stroke: '#94a3b8',
-                  strokeWidth: 2,
-                },
-                markerEnd: {
-                  type: 'arrowclosed',
-                  width: 20,
-                  height: 20,
-                  color: '#94a3b8',
-                },
-              }}
-              fitView
-              fitViewOptions={{
-                padding: 0.2,
-                maxZoom: 1.5,
-                minZoom: 0.1,
-              }}
-              minZoom={0.1}
-              maxZoom={2}
-              attributionPosition="top-right"
-              selectNodesOnDrag={false}
-            >
-              {/* Background Pattern */}
-              <Background
-                color="#e2e8f0"
-                gap={20}
-                size={1}
-              />
-              
-              {/* React Flow Controls - Must be inside ReactFlow component */}
-              <Controls
-                position="bottom-right"
-                className="bg-white border border-gray-300 rounded-lg shadow-lg"
-                showZoom={true}
-                showFitView={true}
-                showInteractive={true}
-              />
-            </ReactFlow>
-          </div>
+        {/* Modified Entity Section */}
+        <div className="text-sm text-gray-600">
+          Modified Entity: <span className="font-medium text-gray-900">Workflow Definition</span>
         </div>
       </div>
-    </ReactFlowProvider>
+
+      {/* Main Workflow Canvas with Border */}
+      <div className="p-4">
+        <div className="relative w-full h-[calc(100vh-200px)] border-2 border-gray-300 bg-white rounded-lg shadow-sm">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            connectionLineStyle={{
+              stroke: '#94a3b8',
+              strokeWidth: 2,
+            }}
+            defaultEdgeOptions={{
+              style: {
+                stroke: '#94a3b8',
+                strokeWidth: 2,
+              },
+              markerEnd: {
+                type: 'arrowclosed',
+                width: 20,
+                height: 20,
+                color: '#94a3b8',
+              },
+            }}
+            fitView
+            fitViewOptions={{
+              padding: 0.2,
+              maxZoom: 1.5,
+              minZoom: 0.1,
+            }}
+            minZoom={0.1}
+            maxZoom={2}
+            attributionPosition="top-right"
+          >
+            {/* Background Pattern */}
+            <Background
+              color="#e2e8f0"
+              gap={20}
+              size={1}
+            />
+            
+            {/* React Flow Controls - Must be inside ReactFlow component */}
+            <Controls
+              position="bottom-right"
+              className="bg-white border border-gray-300 rounded-lg shadow-lg"
+              showZoom={true}
+              showFitView={true}
+              showInteractive={true}
+            />
+          </ReactFlow>
+        </div>
+      </div>
+    </div>
   );
 };
