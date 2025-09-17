@@ -74,11 +74,10 @@ export function applyFocusModeStyling(
       ...node,
       style: {
         ...node.style,
-        opacity: isFocused ? 1 : 0.2,
-        filter: isFocused ? 'brightness(1.2) drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))' : 'blur(1px)',
-        transform: isFocused ? 'scale(1.05)' : 'scale(0.95)',
-        transition: 'all 0.3s ease-in-out',
-        zIndex: isFocused ? 10 : 1,
+        opacity: isFocused ? 1 : 0.25,
+        filter: isFocused ? 'brightness(1.05)' : 'grayscale(0.5) blur(0.5px)',
+        boxShadow: isFocused ? '0 0 0 2px hsl(var(--primary) / 0.4), 0 8px 20px hsl(var(--primary) / 0.25)' : undefined,
+        transition: 'filter 200ms ease, opacity 200ms ease, box-shadow 200ms ease',
       }
     };
   });
@@ -91,12 +90,12 @@ export function applyFocusModeStyling(
       style: {
         ...edge.style,
         opacity: isFocused ? 1 : 0.15,
-        strokeWidth: isFocused ? ((edge.style?.strokeWidth as number) || 2) * 1.5 : 1,
-        filter: isFocused ? 'drop-shadow(0 0 5px rgba(59, 130, 246, 0.3))' : 'none',
+        strokeWidth: isFocused ? Math.max(2, Number(edge.style?.strokeWidth || 2)) : 1,
+        filter: isFocused ? 'drop-shadow(0 0 10px hsl(var(--primary) / 0.35))' : 'none',
       },
       data: {
         ...edge.data,
-        isAnimated: isFocused && (edge.data?.isAnimated || false),
+        isAnimated: isFocused || edge.data?.isAnimated === true,
       }
     };
   });
