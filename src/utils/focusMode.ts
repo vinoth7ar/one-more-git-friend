@@ -112,10 +112,11 @@ export function applyFocusModeStyling(
       ...node,
       style: {
         ...node.style,
-        opacity: isFocused ? 1 : 0.6,
-        filter: isFocused ? 'brightness(1.1)' : 'brightness(0.7)',
+        opacity: isFocused ? 1 : 0,
+        filter: isFocused ? 'brightness(1.1)' : 'none',
         boxShadow: isFocused ? '0 0 0 2px hsl(var(--primary) / 0.4), 0 8px 20px hsl(var(--primary) / 0.25)' : undefined,
-        transition: 'filter 200ms ease, opacity 200ms ease, box-shadow 200ms ease',
+        transition: 'opacity 300ms ease, filter 200ms ease, box-shadow 200ms ease',
+        pointerEvents: isFocused ? 'auto' : ('none' as any),
       }
     };
   });
@@ -127,9 +128,11 @@ export function applyFocusModeStyling(
       ...edge,
       style: {
         ...edge.style,
-        opacity: isFocused ? 1 : 0.4,
+        opacity: isFocused ? 1 : 0,
         strokeWidth: isFocused ? Math.max(3, Number(edge.style?.strokeWidth || 2)) : Number(edge.style?.strokeWidth || 2),
         filter: isFocused ? 'drop-shadow(0 0 10px hsl(var(--primary) / 0.35))' : 'none',
+        transition: 'opacity 300ms ease',
+        pointerEvents: isFocused ? 'auto' : ('none' as any),
       },
       data: {
         ...edge.data,
