@@ -181,7 +181,10 @@ export function createMultiEdgeDemo(): { nodes: Node[], edges: Edge[] } {
       target: 'destination-1',
       type: 'animated',
       label: 'Priority',
-      data: { edgeType: 'bezier' }
+      data: { 
+        edgeType: 'bezier',
+        isAnimated: true
+      }
     },
     {
       id: 'hub-to-b',
@@ -189,7 +192,10 @@ export function createMultiEdgeDemo(): { nodes: Node[], edges: Edge[] } {
       target: 'destination-2',
       type: 'animated',
       label: 'Standard',
-      data: { edgeType: 'bezier' }
+      data: { 
+        edgeType: 'bezier',
+        isAnimated: true
+      }
     },
     {
       id: 'hub-to-c',
@@ -197,7 +203,10 @@ export function createMultiEdgeDemo(): { nodes: Node[], edges: Edge[] } {
       target: 'destination-3',
       type: 'animated',
       label: 'Backup',
-      data: { edgeType: 'bezier' }
+      data: { 
+        edgeType: 'bezier',
+        isAnimated: true
+      }
     },
     {
       id: 'hub-to-d',
@@ -205,7 +214,10 @@ export function createMultiEdgeDemo(): { nodes: Node[], edges: Edge[] } {
       target: 'destination-4',
       type: 'animated',
       label: 'Alternative',
-      data: { edgeType: 'bezier' }
+      data: { 
+        edgeType: 'bezier',
+        isAnimated: true
+      }
     },
     {
       id: 'hub-to-final',
@@ -213,7 +225,10 @@ export function createMultiEdgeDemo(): { nodes: Node[], edges: Edge[] } {
       target: 'destination-5',
       type: 'animated',
       label: 'Completion',
-      data: { edgeType: 'bezier' }
+      data: { 
+        edgeType: 'bezier',
+        isAnimated: true
+      }
     }
   ];
 
