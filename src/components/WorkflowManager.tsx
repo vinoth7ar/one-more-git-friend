@@ -15,6 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
+import { AnimatedEdge } from './AnimatedEdge';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -683,7 +684,11 @@ export const generateSmartEdges = (
         height: 20,
         color: isSelectedEdge ? '#3b82f6' : isConnectedToSelectedNode ? '#f59e0b' : '#94a3b8',
       },
-      type: isBackwardFlow ? 'smoothstep' : 'bezier',
+      type: (isSelectedEdge || isConnectedToSelectedNode) ? 'animated' : (isBackwardFlow ? 'smoothstep' : 'bezier'),
+      data: {
+        isAnimated: isSelectedEdge || isConnectedToSelectedNode,
+        edgeType: isBackwardFlow ? 'smoothstep' : 'bezier',
+      },
     };
   }).filter(Boolean) as Edge[];
   
@@ -884,12 +889,16 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
 });
 
 /**
- * ============= NODE TYPE REGISTRY =============
- * Maps node types to their respective React components
+ * ============= NODE AND EDGE TYPE REGISTRIES =============
+ * Maps node and edge types to their respective React components
  */
 const nodeTypes = {
   status: StatusNode,  // Circular status nodes
   event: EventNode,    // Rectangular event nodes
+};
+
+const edgeTypes = {
+  animated: AnimatedEdge,  // Custom animated edges for selected connections
 };
 
 /**
@@ -1192,6 +1201,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             connectionLineStyle={{
               stroke: '#94a3b8',
               strokeWidth: 2,
