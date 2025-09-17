@@ -55,6 +55,44 @@ export function calculateFocusMode(
 }
 
 /**
+ * Calculates which nodes and edges should be focused vs dimmed
+ * when an edge is selected
+ */
+export function calculateEdgeFocusMode(
+  selectedEdgeId: string,
+  allNodes: Node[],
+  allEdges: Edge[]
+): FocusModeResult {
+  // Find the selected edge
+  const selectedEdge = allEdges.find(edge => edge.id === selectedEdgeId);
+  
+  if (!selectedEdge) {
+    return {
+      focusedNodes: [],
+      focusedEdges: [],
+      dimmedNodes: allNodes,
+      dimmedEdges: allEdges
+    };
+  }
+  
+  // Focus only on the selected edge and its connected nodes
+  const focusedNodeIds = new Set<string>([selectedEdge.source, selectedEdge.target]);
+  const focusedNodes = allNodes.filter(node => focusedNodeIds.has(node.id));
+  const dimmedNodes = allNodes.filter(node => !focusedNodeIds.has(node.id));
+  
+  // Focus only on the selected edge
+  const focusedEdges = [selectedEdge];
+  const dimmedEdges = allEdges.filter(edge => edge.id !== selectedEdgeId);
+  
+  return {
+    focusedNodes,
+    focusedEdges,
+    dimmedNodes,
+    dimmedEdges
+  };
+}
+
+/**
  * Applies focus mode styling to nodes and edges
  */
 export function applyFocusModeStyling(

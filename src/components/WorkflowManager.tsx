@@ -1245,11 +1245,11 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onNodeClick={onNodeClick}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
+            onConnect={onConnect}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             connectionLineStyle={{
