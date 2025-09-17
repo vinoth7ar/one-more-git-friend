@@ -14,8 +14,9 @@ import {
   NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Button } from '@/components/ui/button';
 import { AnimatedEdge } from './AnimatedEdge';
+import { Button } from '@/components/ui/button';
+import { calculateEdgeOffsets, createMultiEdgeDemo } from '../utils/edgeSeparation';
 import { calculateFocusMode, applyFocusModeStyling, hasMultipleConnections, type FocusModeResult } from '@/utils/focusMode';
 
 /**
@@ -912,7 +913,7 @@ const nodeTypes = {
 };
 
 const edgeTypes = {
-  animated: AnimatedEdge,  // Custom animated edges for selected connections
+  animated: AnimatedEdge,
 };
 
 /**
@@ -1151,6 +1152,20 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     setSelectedNodeId(null);
   }, [selectedEdgeId]);
 
+  /**
+   * Load the multi-edge demo to show edge separation
+   */
+  const handleLoadDemo = () => {
+    const demoData = createMultiEdgeDemo();
+    setNodes(demoData.nodes);
+    setEdges(demoData.edges);
+    
+    // Auto-fit the view after layout
+    // setTimeout(() => {
+    //   // fitView functionality would go here
+    // }, 100);
+  };
+
   // ========== RENDER ==========
   
   // Loading state while data is being processed
@@ -1211,6 +1226,11 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
           >
             <span>⚡</span>
             {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
+          </Button>
+          
+          {/* Multi-Edge Demo Button */}
+          <Button onClick={handleLoadDemo} variant="outline" size="sm">
+            Multi-Edge Demo
           </Button>
         </div>
 
