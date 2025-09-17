@@ -934,6 +934,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [isInitialized, setIsInitialized] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [hideWhileSelection, setHideWhileSelection] = useState(true);
   
   // State for focus mode
   const [focusMode, setFocusMode] = useState<FocusModeResult | null>(null);
@@ -1125,8 +1126,8 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       setFocusModeTimeout(null);
     }
     
-    // If a node is selected and has multiple connections, trigger focus mode
-    if (newSelectedNodeId && hasMultipleConnections(newSelectedNodeId, processedEdges)) {
+    // If a node is selected and has multiple connections, trigger focus mode (only if enabled)
+    if (newSelectedNodeId && hideWhileSelection && hasMultipleConnections(newSelectedNodeId, processedEdges)) {
       console.log('🎯 Triggering focus mode for node with multiple connections:', newSelectedNodeId);
       const focusResult = calculateFocusMode(newSelectedNodeId, processedNodes, processedEdges);
       setFocusMode(focusResult);
@@ -1141,7 +1142,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     } else {
       setFocusMode(null);
     }
-  }, [selectedNodeId, processedEdges, processedNodes, focusModeTimeout]);
+  }, [selectedNodeId, processedEdges, processedNodes, focusModeTimeout, hideWhileSelection]);
 
   /**
    * Handle edge selection to highlight connected nodes and trigger focus mode
@@ -1158,8 +1159,8 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
       setFocusModeTimeout(null);
     }
     
-    // If an edge is selected, trigger focus mode
-    if (newSelectedEdgeId) {
+    // If an edge is selected, trigger focus mode (only if enabled)
+    if (newSelectedEdgeId && hideWhileSelection) {
       console.log('🎯 Triggering focus mode for edge:', newSelectedEdgeId);
       const focusResult = calculateEdgeFocusMode(newSelectedEdgeId, processedNodes, processedEdges);
       setFocusMode(focusResult);
@@ -1174,7 +1175,7 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
     } else {
       setFocusMode(null);
     }
-  }, [selectedEdgeId, processedNodes, processedEdges, focusModeTimeout]);
+  }, [selectedEdgeId, processedNodes, processedEdges, focusModeTimeout, hideWhileSelection]);
 
   // ========== RENDER ==========
   
@@ -1226,6 +1227,18 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
               <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Live Data</span>
             </div>
           )}
+
+          {/* Hide While Selection Toggle */}
+          <button
+            onClick={() => setHideWhileSelection(!hideWhileSelection)}
+            className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+              hideWhileSelection 
+                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                : 'bg-gray-100 text-gray-700 border border-gray-300'
+            } hover:opacity-80`}
+          >
+            {hideWhileSelection ? '👁️ Hide While Selection' : '👁️‍🗨️ Show All'}
+          </button>
 
           {/* Layout Toggle */}
           <Button
