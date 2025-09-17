@@ -116,7 +116,6 @@ export function applyFocusModeStyling(
         filter: isFocused ? 'brightness(1.1)' : 'brightness(0.7)',
         boxShadow: isFocused ? '0 0 0 2px hsl(var(--primary) / 0.4), 0 8px 20px hsl(var(--primary) / 0.25)' : undefined,
         transition: 'filter 200ms ease, opacity 200ms ease, box-shadow 200ms ease',
-        transform: isFocused ? 'scale(1.02)' : 'scale(1)',
       }
     };
   });
