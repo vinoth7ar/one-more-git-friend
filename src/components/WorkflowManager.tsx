@@ -16,6 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { AnimatedEdge } from './AnimatedEdge';
+import { calculateFocusMode, applyFocusModeStyling, hasMultipleConnections, type FocusModeResult } from '@/utils/focusMode';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -748,8 +749,15 @@ const StatusNode = memo(({ data, selected }: NodeProps) => {
     <div 
       className={`
         relative w-24 h-24 rounded-full border-2 
-        ${selected ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400' : 'bg-amber-50 border-amber-300'}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400' : ''}
+        transition-all duration-300 ease-in-out
+        ${selected 
+          ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400 scale-110 animate-pulse shadow-xl' 
+          : 'bg-amber-50 border-amber-300 hover:scale-105'
+        }
+        ${data.isHighlighted 
+          ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400 scale-105 shadow-lg' 
+          : ''
+        }
         flex items-center justify-center
         cursor-pointer hover:shadow-lg transition-all duration-200
         shadow-md
@@ -823,9 +831,15 @@ const EventNode = memo(({ data, selected }: NodeProps) => {
     <div 
       className={`
         relative px-4 py-3 min-w-[120px] h-16
-        border-2
-        ${selected ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400' : 'bg-slate-50 border-slate-300'}
-        ${data.isHighlighted ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400' : ''}
+        border-2 transition-all duration-300 ease-in-out
+        ${selected 
+          ? 'ring-4 ring-blue-500 ring-opacity-60 bg-blue-50 border-blue-400 scale-110 animate-pulse shadow-xl' 
+          : 'bg-slate-50 border-slate-300 hover:scale-105'
+        }
+        ${data.isHighlighted 
+          ? 'ring-4 ring-yellow-400 ring-opacity-70 bg-yellow-50 border-yellow-400 scale-105 shadow-lg' 
+          : ''
+        }
         flex items-center justify-center
         cursor-pointer hover:shadow-lg transition-all duration-200
         shadow-md
@@ -919,6 +933,10 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   const [isInitialized, setIsInitialized] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  
+  // State for focus mode
+  const [focusMode, setFocusMode] = useState<FocusModeResult | null>(null);
+  const [focusModeTimeout, setFocusModeTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // ========== WORKFLOW DATA PROCESSING ==========
   
@@ -1026,34 +1044,42 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   }, [currentWorkflowData, isHorizontal, selectedNodeId, selectedEdgeId]);
 
   /**
+   * Apply focus mode styling to nodes and edges
+   */
+  const { styledNodes, styledEdges } = useMemo(() => {
+    return applyFocusModeStyling(processedNodes, processedEdges, focusMode);
+  }, [processedNodes, processedEdges, focusMode]);
+
+  /**
    * Update React Flow state when processed data changes
    * This ensures the visualization stays in sync
    */
   useEffect(() => {
     console.group('🔄 REACT FLOW STATE UPDATE');
     console.log('🔧 State update triggered with:', {
-      nodeCount: processedNodes.length,
-      edgeCount: processedEdges.length,
-      isInitialized
+      nodeCount: styledNodes.length,
+      edgeCount: styledEdges.length,
+      isInitialized,
+      hasFocusMode: !!focusMode
     });
     
-    if (processedNodes.length > 0) {
+    if (styledNodes.length > 0) {
       console.log('✅ Updating nodes state');
-      setNodes(processedNodes);
+      setNodes(styledNodes);
       setIsInitialized(true);
     } else {
       console.warn('⚠️ No processed nodes to set');
     }
     
-    if (processedEdges.length > 0) {
+    if (styledEdges.length > 0) {
       console.log('✅ Updating edges state');
-      setEdges(processedEdges);
+      setEdges(styledEdges);
     } else {
       console.warn('⚠️ No processed edges to set');
     }
     
     console.groupEnd();
-  }, [processedNodes, processedEdges, setNodes, setEdges]);
+  }, [styledNodes, styledEdges, setNodes, setEdges, focusMode]);
 
   // ========== EVENT HANDLERS ==========
 
@@ -1084,13 +1110,37 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   }, [isHorizontal]);
 
   /**
-   * Handle node selection to highlight connected edges
+   * Handle node selection to highlight connected edges and trigger focus mode
    */
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     console.log('🔵 Node clicked:', node.id);
-    setSelectedNodeId(selectedNodeId === node.id ? null : node.id);
+    const newSelectedNodeId = selectedNodeId === node.id ? null : node.id;
+    setSelectedNodeId(newSelectedNodeId);
     setSelectedEdgeId(null);
-  }, [selectedNodeId]);
+    
+    // Clear any existing focus mode timeout
+    if (focusModeTimeout) {
+      clearTimeout(focusModeTimeout);
+      setFocusModeTimeout(null);
+    }
+    
+    // If a node is selected and has multiple connections, trigger focus mode
+    if (newSelectedNodeId && hasMultipleConnections(newSelectedNodeId, processedEdges)) {
+      console.log('🎯 Triggering focus mode for node with multiple connections:', newSelectedNodeId);
+      const focusResult = calculateFocusMode(newSelectedNodeId, processedNodes, processedEdges);
+      setFocusMode(focusResult);
+      
+      // Auto-clear focus mode after 4 seconds
+      const timeout = setTimeout(() => {
+        console.log('⏰ Focus mode timeout - returning to normal view');
+        setFocusMode(null);
+        setFocusModeTimeout(null);
+      }, 4000);
+      setFocusModeTimeout(timeout);
+    } else {
+      setFocusMode(null);
+    }
+  }, [selectedNodeId, processedEdges, processedNodes, focusModeTimeout]);
 
   /**
    * Handle edge selection to highlight connected nodes

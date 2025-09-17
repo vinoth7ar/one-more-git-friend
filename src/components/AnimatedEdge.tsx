@@ -44,21 +44,34 @@ export function AnimatedEdge({
       <BaseEdge id={id} path={edgePath} style={style} markerEnd={markerEnd} />
       {isAnimated && (
         <>
-          {/* Primary animated circle */}
-          <circle r="6" fill={style?.stroke || '#3b82f6'} opacity="0.8">
+          {/* Primary animated circle with glow effect */}
+          <circle r="8" fill={style?.stroke || '#3b82f6'} opacity="0.9">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+            <animate attributeName="r" values="8;12;8" dur="0.8s" repeatCount="indefinite" />
+          </circle>
+          
+          {/* Secondary trailing circle */}
+          <circle r="4" fill={style?.stroke || '#3b82f6'} opacity="0.6">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} begin="0.2s" />
+          </circle>
+          
+          {/* Third trailing circle */}
+          <circle r="2" fill={style?.stroke || '#3b82f6'} opacity="0.3">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} begin="0.4s" />
+          </circle>
+          
+          {/* Expanding pulse wave */}
+          <circle r="15" fill="none" stroke={style?.stroke || '#3b82f6'} strokeWidth="3" opacity="0.7">
             <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
+            <animate attributeName="r" values="15;25;15" dur="1.2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.7;0.1;0.7" dur="1.2s" repeatCount="indefinite" />
+            <animate attributeName="stroke-width" values="3;1;3" dur="1.2s" repeatCount="indefinite" />
           </circle>
           
-          {/* Secondary smaller circle for a trail effect */}
-          <circle r="3" fill={style?.stroke || '#3b82f6'} opacity="0.4">
-            <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} begin="0.3s" />
-          </circle>
-          
-          {/* Pulse effect along the edge */}
-          <circle r="10" fill="none" stroke={style?.stroke || '#3b82f6'} strokeWidth="2" opacity="0.6">
-            <animateMotion dur="2.5s" repeatCount="indefinite" path={edgePath} />
-            <animate attributeName="r" values="10;15;10" dur="1s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.6;0.2;0.6" dur="1s" repeatCount="indefinite" />
+          {/* Sparkle effect */}
+          <circle r="3" fill="#ffffff" opacity="0.8">
+            <animateMotion dur="1.8s" repeatCount="indefinite" path={edgePath} begin="0.1s" />
+            <animate attributeName="opacity" values="0.8;0.2;0.8" dur="0.6s" repeatCount="indefinite" />
           </circle>
         </>
       )}
