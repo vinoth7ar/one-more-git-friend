@@ -16,8 +16,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { AnimatedEdge } from './AnimatedEdge';
 import { Button } from '@/components/ui/button';
-import { calculateEdgeOffsets, createMultiEdgeDemo } from '../utils/edgeSeparation';
-import { calculateFocusMode, applyFocusModeStyling, hasMultipleConnections, type FocusModeResult } from '@/utils/focusMode';
+import { calculateEdgeOffsets } from '../utils/edgeSeparation';
+import { calculateFocusMode, calculateEdgeFocusMode, applyFocusModeStyling, hasMultipleConnections, type FocusModeResult } from '@/utils/focusMode';
 
 /**
  * ============= CORE TYPES & INTERFACES =============
@@ -1144,27 +1144,37 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
   }, [selectedNodeId, processedEdges, processedNodes, focusModeTimeout]);
 
   /**
-   * Handle edge selection to highlight connected nodes
+   * Handle edge selection to highlight connected nodes and trigger focus mode
    */
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     console.log('🔗 Edge clicked:', edge.id);
-    setSelectedEdgeId(selectedEdgeId === edge.id ? null : edge.id);
+    const newSelectedEdgeId = selectedEdgeId === edge.id ? null : edge.id;
+    setSelectedEdgeId(newSelectedEdgeId);
     setSelectedNodeId(null);
-  }, [selectedEdgeId]);
-
-  /**
-   * Load the multi-edge demo to show edge separation
-   */
-  const handleLoadDemo = () => {
-    const demoData = createMultiEdgeDemo();
-    setNodes(demoData.nodes);
-    setEdges(demoData.edges);
     
-    // Auto-fit the view after layout
-    // setTimeout(() => {
-    //   // fitView functionality would go here
-    // }, 100);
-  };
+    // Clear any existing focus mode timeout
+    if (focusModeTimeout) {
+      clearTimeout(focusModeTimeout);
+      setFocusModeTimeout(null);
+    }
+    
+    // If an edge is selected, trigger focus mode
+    if (newSelectedEdgeId) {
+      console.log('🎯 Triggering focus mode for edge:', newSelectedEdgeId);
+      const focusResult = calculateEdgeFocusMode(newSelectedEdgeId, processedNodes, processedEdges);
+      setFocusMode(focusResult);
+      
+      // Auto-clear focus mode after 4 seconds
+      const timeout = setTimeout(() => {
+        console.log('⏰ Focus mode timeout - returning to normal view');
+        setFocusMode(null);
+        setFocusModeTimeout(null);
+      }, 4000);
+      setFocusModeTimeout(timeout);
+    } else {
+      setFocusMode(null);
+    }
+  }, [selectedEdgeId, processedNodes, processedEdges, focusModeTimeout]);
 
   // ========== RENDER ==========
   
@@ -1228,10 +1238,6 @@ export const WorkflowManager = ({ workflowData, useExternalData = false }: Workf
             {isHorizontal ? 'Switch to Vertical' : 'Switch to Horizontal'}
           </Button>
           
-          {/* Multi-Edge Demo Button */}
-          <Button onClick={handleLoadDemo} variant="outline" size="sm">
-            Multi-Edge Demo
-          </Button>
         </div>
 
         {/* Legend Section */}
