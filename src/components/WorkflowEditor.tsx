@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   addEdge,
@@ -10,9 +10,10 @@ import {
   Edge,
   Node,
   ReactFlowProvider,
+  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, X, Plus, ArrowRight, Grid3x3 } from 'lucide-react';
 
 import { StatusNode } from '../nodes/StatusNode';
 import { EventNode } from '../nodes/EventNode';
@@ -22,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { calculateSmartLayout } from '../utils/singleView/layout-utils';
+import { WorkflowData } from '../models/singleView/nodeTypes';
 
 interface WorkflowEditorProps {
   workflowId?: string;
@@ -126,6 +129,43 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
   const edgeTypes = useMemo(() => ({
     animated: AnimatedEdge,
   }), []);
+
+  // Smart layout positioning
+  const handleSmartLayout = useCallback(() => {
+    if (nodes.length === 0) return;
+
+    const workflowData: WorkflowData = {
+      id: 'current-workflow',
+      name: workflowName,
+      description: workflowDescription,
+      nodes: nodes.map(node => ({
+        id: node.id,
+        type: node.type as 'status' | 'event',
+        label: node.data?.label || 'Untitled'
+      })),
+      edges: edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        label: ''
+      }))
+    };
+
+    const layout = calculateSmartLayout(workflowData);
+    
+    const updatedNodes = nodes.map(node => {
+      const position = layout.positions.get(node.id);
+      if (position) {
+        return {
+          ...node,
+          position: { x: position.x, y: position.y }
+        };
+      }
+      return node;
+    });
+
+    setNodes(updatedNodes);
+  }, [nodes, edges, workflowName, workflowDescription, setNodes]);
 
   // Handle node clicks for editing
   const onNodeClick = useCallback((_: unknown, node: Node) => {
@@ -234,6 +274,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
             : node
         )
       );
+      setSelectedNode(null);
     }
   };
 
@@ -298,7 +339,8 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <button className="flex items-center text-gray-600 hover:text-gray-800 mb-4">
-            ← Back
+            <ArrowRight className="w-4 h-4 rotate-180 mr-1" />
+            Back
           </button>
           <h1 className="text-xl font-semibold text-gray-900">Application</h1>
         </div>
@@ -395,8 +437,9 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               Publish Draft
             </Button>
           </div>
-          <Button variant="destructive" className="w-full">
-            🗑️ Delete Workflow
+          <Button variant="destructive" className="w-full flex items-center justify-center gap-2">
+            <Trash2 className="w-4 h-4" />
+            Delete Workflow
           </Button>
         </div>
       </div>
@@ -439,38 +482,56 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
             }}
             className="bg-gray-100"
           >
-            <Background color="#e5e7eb" gap={20} size={1} />
+            <Background variant={BackgroundVariant.Dots} color="#e5e7eb" gap={20} size={1} />
             <Controls position="bottom-left" />
+            
+            {/* Custom fit layout button */}
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              <Button
+                onClick={handleSmartLayout}
+                size="sm"
+                variant="outline"
+                className="bg-white/90 backdrop-blur-sm shadow-lg"
+                disabled={nodes.length === 0}
+              >
+                <Grid3x3 className="w-4 h-4" />
+              </Button>
+            </div>
           </ReactFlow>
         </ReactFlowProvider>
 
-        {/* Legend */}
-        <div className="absolute top-4 right-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-blue-900 mb-2">
-            ↗️ Legend
-          </div>
-          <div className="bg-white rounded p-2 text-xs">
-            <div className="font-medium mb-1">Application</div>
-            <div className="space-y-1 text-gray-600">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-6 bg-gray-100 border rounded text-xs flex items-center justify-center">WF</div>
-                <span>Workflow</span>
+        {/* Legend positioned at top-right corner */}
+        {nodes.length > 0 && (
+          <div className="absolute top-16 right-4 bg-cyan-100 rounded-lg border border-cyan-200 p-4 shadow-lg min-w-[200px] z-10">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-gray-900">Legend</h3>
+              <ChevronUp className="w-4 h-4" />
+            </div>
+            <div className="bg-white rounded border p-3">
+              <div className="text-center mb-2">
+                <div className="text-xs font-medium text-gray-700">Application</div>
+                <div className="text-xs text-gray-500">Workflow</div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-4 bg-gray-100 border rounded text-xs flex items-center justify-center">BE</div>
-                <span>Business Event</span>
+              <div className="flex items-center justify-center gap-4">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-8 h-6 bg-gray-200 rounded border flex items-center justify-center">
+                    <span className="text-xs text-gray-600">Business Event</span>
+                  </div>
+                  <span className="text-xs text-gray-500">events</span>
+                </div>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-6 h-6 rounded-full border border-gray-400"></div>
+                  <span className="text-xs text-gray-500">state</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-100 border rounded-full"></div>
-                <span>State</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-4 bg-gray-100 border rounded text-xs flex items-center justify-center">DE</div>
-                <span>Data Entity</span>
+              <div className="mt-2 text-center">
+                <div className="w-8 h-4 bg-gray-100 rounded border mx-auto"></div>
+                <span className="text-xs text-gray-500">Data Entity</span>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Empty State Message */}
         {nodes.length === 0 && (
@@ -492,9 +553,13 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               <button className="text-gray-400 hover:text-white">
                 <ChevronUp size={16} />
               </button>
-              <button className="text-gray-400 hover:text-white">
-                ⋮⋮⋮
-              </button>
+              <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center">
+                <div className="flex gap-1">
+                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
             </div>
             <button 
               onClick={deleteSelectedNode}
@@ -510,7 +575,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               // State Editor
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="state-name" className="text-sm font-medium text-gray-300">
+                  <Label htmlFor="state-name" className="text-sm font-medium text-white">
                     State
                   </Label>
                   <Input
@@ -527,7 +592,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               <div className="space-y-6">
                 {/* Business Event Name */}
                 <div>
-                  <Label htmlFor="business-event-name" className="text-sm font-medium text-gray-300">
+                  <Label htmlFor="business-event-name" className="text-sm font-medium text-white">
                     Business Event Name
                   </Label>
                   <Input
@@ -535,30 +600,33 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
                     value={editingState.businessEventName || ''}
                     onChange={(e) => setEditingState(prev => ({ ...prev, businessEventName: e.target.value }))}
                     className="mt-2 bg-gray-800 border-gray-600 text-white"
-                    placeholder="Enter business event name"
+                    placeholder="Enrich"
                   />
                 </div>
 
                 {/* Focal Entity */}
                 <div>
-                  <Label htmlFor="focal-entity" className="text-sm font-medium text-gray-300">
+                  <Label htmlFor="focal-entity" className="text-sm font-medium text-white">
                     Focal Entity
                   </Label>
-                  <select
-                    id="focal-entity"
-                    value={editingState.focalEntity || ''}
-                    onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
-                    className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
-                  >
-                    {focalEntityOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      id="focal-entity"
+                      value={editingState.focalEntity || ''}
+                      onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
+                      className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
+                    >
+                      {focalEntityOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <Label htmlFor="description" className="text-sm font-medium text-gray-300">
+                  <Label htmlFor="description" className="text-sm font-medium text-white">
                     Description
                   </Label>
                   <div className="relative mt-2">
@@ -569,7 +637,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
                       className="bg-gray-800 border-gray-600 text-white pr-12"
                       rows={3}
                       maxLength={240}
-                      placeholder="Enter description"
+                      placeholder="PMF enriches hypo loan positions."
                     />
                     <div className="absolute bottom-2 right-2 text-xs text-gray-400">
                       {(editingState.description || '').length}/240
@@ -579,97 +647,115 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
 
                 {/* Created Entities */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-300">
+                  <Label className="text-sm font-medium text-white">
                     Created Entities
                   </Label>
                   <div className="mt-2 space-y-2">
+                    <div className="relative">
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            addCreatedEntity(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
+                      >
+                        <option value="">Select created entities</option>
+                        {createdEntityOptions.filter(opt => !editingState.createdEntities?.includes(opt)).map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                    <button className="text-xs text-cyan-400 hover:text-cyan-300">
+                      Advanced Select
+                    </button>
                     <div className="flex flex-wrap gap-2">
                       {editingState.createdEntities?.map(entity => (
-                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-xs rounded">
+                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-700 text-xs rounded">
                           {entity}
                           <button 
                             onClick={() => removeCreatedEntity(entity)}
                             className="hover:text-red-300"
                           >
-                            ×
+                            <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))}
                     </div>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          addCreatedEntity(e.target.value);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
-                    >
-                      <option value="">Select created entities</option>
-                      {createdEntityOptions.filter(opt => !editingState.createdEntities?.includes(opt)).map(option => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <button className="text-xs text-blue-400 hover:text-blue-300">
-                      Advanced Select
-                    </button>
                   </div>
                 </div>
 
                 {/* Modified Entities */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-300">
+                  <Label className="text-sm font-medium text-white">
                     Modified Entities
                   </Label>
                   <div className="mt-2 space-y-2">
+                    <div className="relative">
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            addModifiedEntity(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
+                      >
+                        <option value="">Select modified entities</option>
+                        {modifiedEntityOptions.filter(opt => !editingState.modifiedEntities?.includes(opt)).map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                    <button className="text-xs text-cyan-400 hover:text-cyan-300">
+                      Advanced Select
+                    </button>
                     <div className="flex flex-wrap gap-2">
                       {editingState.modifiedEntities?.map(entity => (
-                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-xs rounded">
+                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-700 text-xs rounded">
                           {entity}
                           <button 
                             onClick={() => removeModifiedEntity(entity)}
                             className="hover:text-red-300"
                           >
-                            ×
+                            <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))}
                     </div>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          addModifiedEntity(e.target.value);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
-                    >
-                      <option value="">Select modified entities</option>
-                      {modifiedEntityOptions.filter(opt => !editingState.modifiedEntities?.includes(opt)).map(option => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <button className="text-xs text-blue-400 hover:text-blue-300">
-                      Advanced Select
-                    </button>
                   </div>
                 </div>
 
                 {/* Business Events & Subworkflows */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-300">
+                  <Label className="text-sm font-medium text-white">
                     Business Event(s) and/or Subworkflow(s)
                   </Label>
                   <div className="mt-2 space-y-2">
+                    <div className="relative">
+                      <select className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8">
+                        <option value="">Select business event(s) and/or subworkflow(s)</option>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
                     <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600 text-xs rounded">
+                        Enrich
+                        <button className="hover:text-cyan-200">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
                       {editingState.businessEvents?.map(event => (
-                        <span key={event} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-xs rounded">
+                        <span key={event} className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600 text-xs rounded">
                           {event}
                           <button 
                             onClick={() => removeBusinessEvent(event)}
-                            className="hover:text-red-300"
+                            className="hover:text-cyan-200"
                           >
-                            ×
+                            <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))}
@@ -679,25 +765,28 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
 
                 {/* Condition */}
                 <div>
-                  <Label htmlFor="condition" className="text-sm font-medium text-gray-300">
+                  <Label htmlFor="condition" className="text-sm font-medium text-white">
                     Condition
                   </Label>
-                  <select
-                    id="condition"
-                    value={editingState.condition || 'None'}
-                    onChange={(e) => setEditingState(prev => ({ ...prev, condition: e.target.value }))}
-                    className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
-                  >
-                    <option value="None">None</option>
-                    <option value="If">If</option>
-                    <option value="While">While</option>
-                    <option value="When">When</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      id="condition"
+                      value={editingState.condition || 'None'}
+                      onChange={(e) => setEditingState(prev => ({ ...prev, condition: e.target.value }))}
+                      className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
+                    >
+                      <option value="None">None</option>
+                      <option value="If">If</option>
+                      <option value="While">While</option>
+                      <option value="When">When</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
 
                 {/* Trigger */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-300 mb-3 block">
+                  <Label className="text-sm font-medium text-white mb-3 block">
                     Trigger
                   </Label>
                   <div className="space-y-2">
@@ -727,7 +816,11 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
 
           {/* Footer Buttons */}
           <div className="p-4 border-t border-gray-700 flex justify-between">
-            <Button variant="outline" className="text-gray-300 border-gray-600">
+            <Button 
+              variant="outline" 
+              onClick={() => setSelectedNode(null)}
+              className="text-gray-300 border-gray-600 hover:bg-gray-800"
+            >
               Previous
             </Button>
             <Button 
