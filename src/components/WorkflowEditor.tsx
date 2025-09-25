@@ -12,6 +12,7 @@ import {
   ReactFlowProvider,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 import { StatusNode } from '../nodes/StatusNode';
 import { EventNode } from '../nodes/EventNode';
@@ -34,6 +35,24 @@ interface ComponentPaletteItem {
   description: string;
 }
 
+interface NodeEditingState {
+  // Basic fields
+  name: string;
+  
+  // Business Event fields
+  businessEventName?: string;
+  focalEntity?: string;
+  description?: string;
+  createdEntities?: string[];
+  modifiedEntities?: string[];
+  
+  // Transition Block fields  
+  businessEvents?: string[];
+  condition?: string;
+  triggerAutomatic?: boolean;
+  triggerExternal?: boolean;
+}
+
 const componentPalette: ComponentPaletteItem[] = [
   {
     id: 'transition-block',
@@ -51,64 +70,25 @@ const componentPalette: ComponentPaletteItem[] = [
   }
 ];
 
-const initialNodes: Node[] = [
-  {
-    id: '1',
-    type: 'status',
-    position: { x: 100, y: 100 },
-    data: { label: 'Start' },
-  },
-  {
-    id: '2', 
-    type: 'event',
-    position: { x: 300, y: 100 },
-    data: { label: 'Stage' },
-  },
-  {
-    id: '3',
-    type: 'status',
-    position: { x: 500, y: 100 },
-    data: { label: 'staged' },
-  },
-  {
-    id: '4',
-    type: 'event',
-    position: { x: 300, y: 250 },
-    data: { label: 'Enrich' },
-  },
-  {
-    id: '5',
-    type: 'status', 
-    position: { x: 500, y: 250 },
-    data: { label: 'enriched' },
-  }
+const focalEntityOptions = [
+  'Loan Commitment',
+  'Application',
+  'Customer',
+  'Account'
 ];
 
-const initialEdges: Edge[] = [
-  {
-    id: 'e1-2',
-    source: '1',
-    target: '2',
-    type: 'animated',
-  },
-  {
-    id: 'e2-3',
-    source: '2', 
-    target: '3',
-    type: 'animated',
-  },
-  {
-    id: 'e3-4',
-    source: '3',
-    target: '4',
-    type: 'animated',
-  },
-  {
-    id: 'e4-5',
-    source: '4',
-    target: '5', 
-    type: 'animated',
-  }
+const createdEntityOptions = [
+  'Loan Commitment',
+  'Application Data',
+  'Credit Report',
+  'Assessment'
+];
+
+const modifiedEntityOptions = [
+  'Loan Commitment',
+  'Application Status',
+  'Customer Profile',
+  'Account Details'
 ];
 
 export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
@@ -119,11 +99,22 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
   
   // Selected node for editing
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [editingNodeName, setEditingNodeName] = useState('');
+  const [editingState, setEditingState] = useState<NodeEditingState>({
+    name: '',
+    businessEventName: '',
+    focalEntity: focalEntityOptions[0],
+    description: '',
+    createdEntities: [],
+    modifiedEntities: [],
+    businessEvents: [],
+    condition: 'None',
+    triggerAutomatic: true,
+    triggerExternal: false
+  });
   
-  // React Flow state
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  // React Flow state - start with empty canvas
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Node types for React Flow
   const nodeTypes = useMemo(() => ({
@@ -140,7 +131,26 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
   const onNodeClick = useCallback((_: unknown, node: Node) => {
     setSelectedNode(node);
     const nodeData = node.data as { label?: string };
-    setEditingNodeName(nodeData.label || '');
+    
+    // Initialize editing state based on node type
+    if (node.type === 'status') {
+      setEditingState({
+        name: nodeData.label || '',
+      });
+    } else if (node.type === 'event') {
+      setEditingState({
+        name: nodeData.label || '',
+        businessEventName: nodeData.label || '',
+        focalEntity: focalEntityOptions[0],
+        description: 'PMF enriches hypo loan positions.',
+        createdEntities: ['Loan Commitment'],
+        modifiedEntities: [],
+        businessEvents: [nodeData.label || ''],
+        condition: 'None',
+        triggerAutomatic: true,
+        triggerExternal: false
+      });
+    }
   }, []);
 
   // Handle new connections
@@ -163,19 +173,43 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
       return;
     }
 
+    const reactFlowBounds = (event.currentTarget as Element).getBoundingClientRect();
     const position = {
-      x: event.clientX - 250, // Adjust for sidebar width
-      y: event.clientY - 100,
+      x: event.clientX - reactFlowBounds.left - 320, // Adjust for sidebar width
+      y: event.clientY - reactFlowBounds.top - 100,
     };
 
     const newNode: Node = {
-      id: `${Date.now()}`, // Use timestamp for unique ID
+      id: `${Date.now()}`,
       type: type,
       position,
-      data: { label: `New ${type === 'status' ? 'State' : 'Block'}` },
+      data: { 
+        label: type === 'status' ? 'New State' : 'New Block' 
+      },
     };
 
     setNodes((nds) => nds.concat(newNode));
+    
+    // Auto-select the new node for immediate editing
+    setSelectedNode(newNode);
+    if (type === 'status') {
+      setEditingState({
+        name: 'New State',
+      });
+    } else {
+      setEditingState({
+        name: 'New Block',
+        businessEventName: 'New Block',
+        focalEntity: focalEntityOptions[0],
+        description: '',
+        createdEntities: [],
+        modifiedEntities: [],
+        businessEvents: ['New Block'],
+        condition: 'None',
+        triggerAutomatic: true,
+        triggerExternal: false
+      });
+    }
   }, [setNodes]);
 
   // Handle drag start from palette
@@ -186,16 +220,20 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
 
   // Save edited node
   const saveNodeEdit = () => {
-    if (selectedNode && editingNodeName.trim()) {
+    if (selectedNode) {
       setNodes((nds) =>
         nds.map((node) =>
           node.id === selectedNode.id
-            ? { ...node, data: { ...node.data, label: editingNodeName.trim() } }
+            ? { 
+                ...node, 
+                data: { 
+                  ...node.data, 
+                  label: editingState.businessEventName || editingState.name || 'Unnamed'
+                } 
+              }
             : node
         )
       );
-      setSelectedNode(null);
-      setEditingNodeName('');
     }
   };
 
@@ -207,8 +245,50 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
         edge.source !== selectedNode.id && edge.target !== selectedNode.id
       ));
       setSelectedNode(null);
-      setEditingNodeName('');
     }
+  };
+
+  // Add/remove entities
+  const addCreatedEntity = (entity: string) => {
+    setEditingState(prev => ({
+      ...prev,
+      createdEntities: [...(prev.createdEntities || []), entity]
+    }));
+  };
+
+  const removeCreatedEntity = (entity: string) => {
+    setEditingState(prev => ({
+      ...prev,
+      createdEntities: (prev.createdEntities || []).filter(e => e !== entity)
+    }));
+  };
+
+  const addModifiedEntity = (entity: string) => {
+    setEditingState(prev => ({
+      ...prev,
+      modifiedEntities: [...(prev.modifiedEntities || []), entity]
+    }));
+  };
+
+  const removeModifiedEntity = (entity: string) => {
+    setEditingState(prev => ({
+      ...prev,
+      modifiedEntities: (prev.modifiedEntities || []).filter(e => e !== entity)
+    }));
+  };
+
+  const addBusinessEvent = (event: string) => {
+    setEditingState(prev => ({
+      ...prev,
+      businessEvents: [...(prev.businessEvents || []), event]
+    }));
+  };
+
+  const removeBusinessEvent = (event: string) => {
+    setEditingState(prev => ({
+      ...prev,
+      businessEvents: (prev.businessEvents || []).filter(e => e !== event)
+    }));
   };
 
   return (
@@ -391,16 +471,26 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
             </div>
           </div>
         </div>
+
+        {/* Empty State Message */}
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center text-gray-500">
+              <p className="text-lg font-medium mb-2">Start Building Your Workflow</p>
+              <p className="text-sm">Drag a component from the sidebar to create your first node</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Sidebar - Node Editor */}
       {selectedNode && (
-        <div className="w-72 bg-gray-900 text-white flex flex-col">
+        <div className="w-80 bg-gray-900 text-white flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button className="text-gray-400 hover:text-white">
-                ↑ ↓
+                <ChevronUp size={16} />
               </button>
               <button className="text-gray-400 hover:text-white">
                 ⋮⋮⋮
@@ -410,33 +500,242 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               onClick={deleteSelectedNode}
               className="text-gray-400 hover:text-red-400"
             >
-              🗑️
+              <Trash2 size={16} />
             </button>
           </div>
 
           {/* Editor Content */}
-          <div className="p-4 flex-1">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="node-name" className="text-sm font-medium text-gray-300">
-                  {selectedNode.type === 'status' ? 'State' : 'Transition Block'}
-                </Label>
-                <Input
-                  id="node-name"
-                  value={editingNodeName}
-                  onChange={(e) => setEditingNodeName(e.target.value)}
-                  className="mt-2 bg-gray-800 border-gray-600 text-white"
-                  placeholder={`Enter ${selectedNode.type === 'status' ? 'state' : 'block'} name`}
-                />
+          <div className="p-4 flex-1 overflow-y-auto">
+            {selectedNode.type === 'status' ? (
+              // State Editor
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="state-name" className="text-sm font-medium text-gray-300">
+                    State
+                  </Label>
+                  <Input
+                    id="state-name"
+                    value={editingState.name}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, name: e.target.value }))}
+                    className="mt-2 bg-gray-800 border-gray-600 text-white"
+                    placeholder="Enter state name"
+                  />
+                </div>
               </div>
+            ) : (
+              // Business Event Editor
+              <div className="space-y-6">
+                {/* Business Event Name */}
+                <div>
+                  <Label htmlFor="business-event-name" className="text-sm font-medium text-gray-300">
+                    Business Event Name
+                  </Label>
+                  <Input
+                    id="business-event-name"
+                    value={editingState.businessEventName || ''}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, businessEventName: e.target.value }))}
+                    className="mt-2 bg-gray-800 border-gray-600 text-white"
+                    placeholder="Enter business event name"
+                  />
+                </div>
 
-              <Button 
-                onClick={saveNodeEdit}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                Save {selectedNode.type === 'status' ? 'State' : 'Block'}
-              </Button>
-            </div>
+                {/* Focal Entity */}
+                <div>
+                  <Label htmlFor="focal-entity" className="text-sm font-medium text-gray-300">
+                    Focal Entity
+                  </Label>
+                  <select
+                    id="focal-entity"
+                    value={editingState.focalEntity || ''}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
+                    className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
+                  >
+                    {focalEntityOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <Label htmlFor="description" className="text-sm font-medium text-gray-300">
+                    Description
+                  </Label>
+                  <div className="relative mt-2">
+                    <Textarea
+                      id="description"
+                      value={editingState.description || ''}
+                      onChange={(e) => setEditingState(prev => ({ ...prev, description: e.target.value }))}
+                      className="bg-gray-800 border-gray-600 text-white pr-12"
+                      rows={3}
+                      maxLength={240}
+                      placeholder="Enter description"
+                    />
+                    <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                      {(editingState.description || '').length}/240
+                    </div>
+                  </div>
+                </div>
+
+                {/* Created Entities */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-300">
+                    Created Entities
+                  </Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editingState.createdEntities?.map(entity => (
+                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-xs rounded">
+                          {entity}
+                          <button 
+                            onClick={() => removeCreatedEntity(entity)}
+                            className="hover:text-red-300"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          addCreatedEntity(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
+                    >
+                      <option value="">Select created entities</option>
+                      {createdEntityOptions.filter(opt => !editingState.createdEntities?.includes(opt)).map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    <button className="text-xs text-blue-400 hover:text-blue-300">
+                      Advanced Select
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modified Entities */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-300">
+                    Modified Entities
+                  </Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editingState.modifiedEntities?.map(entity => (
+                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-xs rounded">
+                          {entity}
+                          <button 
+                            onClick={() => removeModifiedEntity(entity)}
+                            className="hover:text-red-300"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          addModifiedEntity(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
+                    >
+                      <option value="">Select modified entities</option>
+                      {modifiedEntityOptions.filter(opt => !editingState.modifiedEntities?.includes(opt)).map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    <button className="text-xs text-blue-400 hover:text-blue-300">
+                      Advanced Select
+                    </button>
+                  </div>
+                </div>
+
+                {/* Business Events & Subworkflows */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-300">
+                    Business Event(s) and/or Subworkflow(s)
+                  </Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {editingState.businessEvents?.map(event => (
+                        <span key={event} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-xs rounded">
+                          {event}
+                          <button 
+                            onClick={() => removeBusinessEvent(event)}
+                            className="hover:text-red-300"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Condition */}
+                <div>
+                  <Label htmlFor="condition" className="text-sm font-medium text-gray-300">
+                    Condition
+                  </Label>
+                  <select
+                    id="condition"
+                    value={editingState.condition || 'None'}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, condition: e.target.value }))}
+                    className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white"
+                  >
+                    <option value="None">None</option>
+                    <option value="If">If</option>
+                    <option value="While">While</option>
+                    <option value="When">When</option>
+                  </select>
+                </div>
+
+                {/* Trigger */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-300 mb-3 block">
+                    Trigger
+                  </Label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editingState.triggerAutomatic || false}
+                        onChange={(e) => setEditingState(prev => ({ ...prev, triggerAutomatic: e.target.checked }))}
+                        className="rounded"
+                      />
+                      <span className="text-sm">Automatic</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={editingState.triggerExternal || false}
+                        onChange={(e) => setEditingState(prev => ({ ...prev, triggerExternal: e.target.checked }))}
+                        className="rounded"
+                      />
+                      <span className="text-sm">External</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="p-4 border-t border-gray-700 flex justify-between">
+            <Button variant="outline" className="text-gray-300 border-gray-600">
+              Previous
+            </Button>
+            <Button 
+              onClick={saveNodeEdit}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {selectedNode.type === 'status' ? 'Done' : 'Next'}
+            </Button>
           </div>
         </div>
       )}
