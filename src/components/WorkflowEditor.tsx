@@ -4,6 +4,7 @@ import {
   addEdge,
   Controls,
   Background,
+  MiniMap,
   useNodesState,
   useEdgesState,
   Connection,
@@ -230,10 +231,23 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     }
 
     const reactFlowBounds = (event.currentTarget as Element).getBoundingClientRect();
-    const position = {
-      x: event.clientX - reactFlowBounds.left - 320,
-      y: event.clientY - reactFlowBounds.top - 100,
+    
+    // Calculate position with proper offset and ensure visibility
+    let position = {
+      x: Math.max(50, event.clientX - reactFlowBounds.left - 320),
+      y: Math.max(50, event.clientY - reactFlowBounds.top - 100),
     };
+
+    // If there are existing nodes, position new node to the right of the rightmost node
+    if (nodes.length > 0) {
+      const rightmostNode = nodes.reduce((rightmost, node) => 
+        node.position.x > rightmost.position.x ? node : rightmost
+      );
+      position = {
+        x: rightmostNode.position.x + 200,
+        y: rightmostNode.position.y
+      };
+    }
 
     const newNode: Node = {
       id: `${Date.now()}`,
@@ -311,10 +325,10 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     const sourceNode = nodes.find(n => n.id === sourceNodeId);
     if (!sourceNode) return;
     
-    // Position alternate node below the source node
+    // Position alternate node to the right of the source node with proper spacing
     const alternatePosition = {
-      x: sourceNode.position.x,
-      y: sourceNode.position.y + 150
+      x: sourceNode.position.x + 200,
+      y: sourceNode.position.y
     };
     
     // Determine alternate type (opposite of source)
@@ -525,19 +539,18 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               showInteractive={false}
               className="bg-white border border-gray-300 rounded shadow-sm"
             />
+            <MiniMap 
+              position="top-right"
+              nodeStrokeColor="#374151"
+              nodeColor="#9CA3AF"
+              nodeBorderRadius={2}
+              className="bg-white border border-gray-300 rounded shadow-sm"
+              style={{ backgroundColor: 'white' }}
+              pannable
+              zoomable
+            />
           </ReactFlow>
         </ReactFlowProvider>
-
-        {/* Legend - Bottom right to match Figma */}
-        <div className="absolute bottom-4 right-4 bg-white border border-gray-400 rounded p-3 shadow-sm w-32 h-24">
-          <div className="text-xs text-gray-700 font-medium mb-2">Mini-map</div>
-          <div className="bg-gray-100 rounded border border-gray-300 h-16 relative">
-            {/* Mini representation of the workflow */}
-            <div className="absolute top-2 left-2 w-2 h-2 bg-green-400 rounded"></div>
-            <div className="absolute top-2 left-6 w-2 h-1 bg-gray-400 rounded"></div>
-            <div className="absolute top-2 left-10 w-2 h-2 bg-gray-300 rounded-full"></div>
-          </div>
-        </div>
       </div>
 
       {/* Right Sidebar - Node Editor */}
