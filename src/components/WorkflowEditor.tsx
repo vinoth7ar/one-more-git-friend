@@ -13,7 +13,16 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ChevronUp, ChevronDown, Trash2, X, Plus, ArrowRight, Grid3x3 } from 'lucide-react';
+import { 
+  KeyboardArrowLeft,
+  Delete,
+  Close,
+  ExpandLess,
+  ExpandMore,
+  AspectRatio,
+  KeyboardArrowUp,
+  KeyboardArrowDown
+} from '@mui/icons-material';
 
 import { StatusNode } from '../nodes/StatusNode';
 import { EventNode } from '../nodes/EventNode';
@@ -34,22 +43,16 @@ interface ComponentPaletteItem {
   id: string;
   type: 'status' | 'event';
   label: string;
-  icon: string;
   description: string;
 }
 
 interface NodeEditingState {
-  // Basic fields
   name: string;
-  
-  // Business Event fields
   businessEventName?: string;
   focalEntity?: string;
   description?: string;
   createdEntities?: string[];
   modifiedEntities?: string[];
-  
-  // Transition Block fields  
   businessEvents?: string[];
   condition?: string;
   triggerAutomatic?: boolean;
@@ -61,15 +64,13 @@ const componentPalette: ComponentPaletteItem[] = [
     id: 'transition-block',
     type: 'event',
     label: 'Transition Block',
-    icon: '📦',
     description: 'Includes business events'
   },
   {
     id: 'state',
     type: 'status', 
     label: 'State',
-    icon: '⭕',
-    description: 'Status node'
+    description: ''
   }
 ];
 
@@ -94,6 +95,21 @@ const modifiedEntityOptions = [
   'Account Details'
 ];
 
+const conditionOptions = [
+  'None',
+  'Approved',
+  'Rejected',
+  'Pending Review'
+];
+
+const businessEventOptions = [
+  'Stage',
+  'Approve',
+  'Reject',
+  'Submit',
+  'Review'
+];
+
 export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
   // Workflow metadata
   const [workflowName, setWorkflowName] = useState('Hypo Loan Position');
@@ -115,7 +131,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     triggerExternal: false
   });
   
-  // React Flow state - start with empty canvas
+  // React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -172,7 +188,6 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     setSelectedNode(node);
     const nodeData = node.data as { label?: string };
     
-    // Initialize editing state based on node type
     if (node.type === 'status') {
       setEditingState({
         name: nodeData.label || '',
@@ -182,7 +197,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
         name: nodeData.label || '',
         businessEventName: nodeData.label || '',
         focalEntity: focalEntityOptions[0],
-        description: 'PMF enriches hypo loan positions.',
+        description: 'FLUME stages commitment data in PMF database.',
         createdEntities: ['Loan Commitment'],
         modifiedEntities: [],
         businessEvents: [nodeData.label || ''],
@@ -215,7 +230,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
 
     const reactFlowBounds = (event.currentTarget as Element).getBoundingClientRect();
     const position = {
-      x: event.clientX - reactFlowBounds.left - 320, // Adjust for sidebar width
+      x: event.clientX - reactFlowBounds.left - 320,
       y: event.clientY - reactFlowBounds.top - 100,
     };
 
@@ -289,87 +304,42 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     }
   };
 
-  // Add/remove entities
-  const addCreatedEntity = (entity: string) => {
-    setEditingState(prev => ({
-      ...prev,
-      createdEntities: [...(prev.createdEntities || []), entity]
-    }));
-  };
-
-  const removeCreatedEntity = (entity: string) => {
-    setEditingState(prev => ({
-      ...prev,
-      createdEntities: (prev.createdEntities || []).filter(e => e !== entity)
-    }));
-  };
-
-  const addModifiedEntity = (entity: string) => {
-    setEditingState(prev => ({
-      ...prev,
-      modifiedEntities: [...(prev.modifiedEntities || []), entity]
-    }));
-  };
-
-  const removeModifiedEntity = (entity: string) => {
-    setEditingState(prev => ({
-      ...prev,
-      modifiedEntities: (prev.modifiedEntities || []).filter(e => e !== entity)
-    }));
-  };
-
-  const addBusinessEvent = (event: string) => {
-    setEditingState(prev => ({
-      ...prev,
-      businessEvents: [...(prev.businessEvents || []), event]
-    }));
-  };
-
-  const removeBusinessEvent = (event: string) => {
-    setEditingState(prev => ({
-      ...prev,
-      businessEvents: (prev.businessEvents || []).filter(e => e !== event)
-    }));
-  };
-
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex" style={{ backgroundColor: '#F5F5DC' }}>
       {/* Left Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-80 bg-white border-r border-gray-300 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-300">
           <button className="flex items-center text-gray-600 hover:text-gray-800 mb-4">
-            <ArrowRight className="w-4 h-4 rotate-180 mr-1" />
+            <KeyboardArrowLeft className="w-5 h-5 mr-1" />
             Back
           </button>
-          <h1 className="text-xl font-semibold text-gray-900">Application</h1>
+          <h1 className="text-xl font-bold text-gray-900">Application</h1>
         </div>
 
         {/* Workflow Details */}
         <div className="p-4 space-y-4">
           <div>
-            <Label htmlFor="workflow-name" className="text-sm font-medium text-gray-700">
+            <Label className="text-sm font-bold text-gray-700 mb-1 block">
               Workflow Name
             </Label>
             <Input
-              id="workflow-name"
               value={workflowName}
               onChange={(e) => setWorkflowName(e.target.value)}
-              className="mt-1"
+              className="bg-gray-50 border-gray-300"
             />
           </div>
 
           <div>
-            <Label htmlFor="workflow-description" className="text-sm font-medium text-gray-700">
+            <Label className="text-sm font-bold text-gray-700 mb-1 block">
               Workflow Description
             </Label>
-            <div className="relative mt-1">
+            <div className="relative">
               <Textarea
-                id="workflow-description"
                 value={workflowDescription}
                 onChange={(e) => setWorkflowDescription(e.target.value)}
                 placeholder="Enter workflow description"
-                className="pr-12"
+                className="bg-gray-50 border-gray-300 pr-12"
                 rows={4}
                 maxLength={240}
               />
@@ -379,8 +349,6 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
             </div>
           </div>
         </div>
-
-        <Separator />
 
         {/* Component Palette */}
         <div className="p-4 flex-1">
@@ -392,30 +360,30 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
             {componentPalette.map((component) => (
               <div
                 key={component.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-move hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-3 p-3 bg-gray-100 rounded border border-gray-300 cursor-move hover:bg-gray-200 transition-colors"
                 draggable
                 onDragStart={(event) => onDragStart(event, component.type)}
               >
-                <div className="w-6 h-4 bg-gray-300 rounded flex items-center justify-center text-xs">
-                  {component.icon}
+                <div className="w-5 h-4 bg-gray-400 rounded flex items-center justify-center">
+                  <div className="w-3 h-2 bg-gray-600 rounded-sm"></div>
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-sm text-gray-900">{component.label}</div>
-                  <div className="text-xs text-gray-500">{component.description}</div>
+                  <div className="font-bold text-sm text-gray-900">{component.label}</div>
+                  {component.description && (
+                    <div className="text-xs text-gray-500">{component.description}</div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          <Separator className="my-4" />
-
           {/* Auto-positioning toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Auto-positioning</span>
+          <div className="flex items-center justify-between mt-6">
+            <span className="text-sm font-bold text-gray-700">Auto-positioning</span>
             <button
               onClick={() => setAutoPositioning(!autoPositioning)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                autoPositioning ? 'bg-blue-600' : 'bg-gray-200'
+                autoPositioning ? 'bg-blue-600' : 'bg-gray-300'
               }`}
             >
               <span
@@ -428,17 +396,17 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="p-4 border-t border-gray-200 space-y-3">
+        <div className="p-4 border-t border-gray-300 space-y-3">
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1">
+            <Button variant="outline" className="flex-1 border-gray-400 text-gray-700">
               Save Draft
             </Button>
-            <Button className="flex-1">
+            <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
               Publish Draft
             </Button>
           </div>
-          <Button variant="destructive" className="w-full flex items-center justify-center gap-2">
-            <Trash2 className="w-4 h-4" />
+          <Button variant="destructive" className="w-full flex items-center justify-center gap-2 text-red-600 border-red-300 bg-white hover:bg-red-50">
+            <Delete className="w-4 h-4" />
             Delete Workflow
           </Button>
         </div>
@@ -480,320 +448,194 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               maxZoom: 1.5,
               minZoom: 0.1,
             }}
-            className="bg-gray-100"
+            style={{ backgroundColor: '#F5F5DC' }}
           >
-            <Background variant={BackgroundVariant.Dots} color="#e5e7eb" gap={20} size={1} />
+            <Background variant={BackgroundVariant.Dots} color="#ddd" gap={20} size={1} />
             <Controls position="bottom-left" />
             
-            {/* Custom fit layout button */}
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
-              <Button
+            {/* Custom zoom and fit buttons */}
+            <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-10">
+              <button className="bg-white border border-gray-300 rounded p-2 shadow-sm hover:bg-gray-50">
+                +
+              </button>
+              <button className="bg-white border border-gray-300 rounded p-2 shadow-sm hover:bg-gray-50">
+                −
+              </button>
+              <button 
                 onClick={handleSmartLayout}
-                size="sm"
-                variant="outline"
-                className="bg-white/90 backdrop-blur-sm shadow-lg"
+                className="bg-white border border-gray-300 rounded p-2 shadow-sm hover:bg-gray-50"
                 disabled={nodes.length === 0}
               >
-                <Grid3x3 className="w-4 h-4" />
-              </Button>
+                <AspectRatio className="w-4 h-4" />
+              </button>
             </div>
           </ReactFlow>
         </ReactFlowProvider>
 
-        {/* Legend positioned at top-right corner */}
-        {nodes.length > 0 && (
-          <div className="absolute top-16 right-4 bg-cyan-100 rounded-lg border border-cyan-200 p-4 shadow-lg min-w-[200px] z-10">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-gray-900">Legend</h3>
-              <ChevronUp className="w-4 h-4" />
-            </div>
-            <div className="bg-white rounded border p-3">
-              <div className="text-center mb-2">
-                <div className="text-xs font-medium text-gray-700">Application</div>
-                <div className="text-xs text-gray-500">Workflow</div>
-              </div>
-              <div className="flex items-center justify-center gap-4">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-8 h-6 bg-gray-200 rounded border flex items-center justify-center">
-                    <span className="text-xs text-gray-600">Business Event</span>
-                  </div>
-                  <span className="text-xs text-gray-500">events</span>
+        {/* Legend */}
+        <div className="absolute top-4 right-4 bg-teal-200 border border-teal-400 rounded-lg p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-sm">Legend</h3>
+            <button className="text-gray-600 hover:text-gray-800">
+              <ExpandLess className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="bg-white rounded border border-gray-300 p-3">
+            <div className="text-xs font-bold mb-2">Application</div>
+            <div className="bg-gray-100 rounded border border-gray-300 p-2">
+              <div className="text-xs font-bold mb-1">Workflow</div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-4 h-4 bg-teal-200 rounded border border-gray-400 flex items-center justify-center">
+                  <div className="text-xs">BE</div>
                 </div>
-                <ArrowRight className="w-3 h-3 text-gray-400" />
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-6 h-6 rounded-full border border-gray-400"></div>
-                  <span className="text-xs text-gray-500">state</span>
+                <div className="w-4 h-4 bg-gray-200 rounded-full border border-gray-400 flex items-center justify-center">
+                  <div className="text-xs">st</div>
                 </div>
               </div>
-              <div className="mt-2 text-center">
-                <div className="w-8 h-4 bg-gray-100 rounded border mx-auto"></div>
-                <span className="text-xs text-gray-500">Data Entity</span>
-              </div>
+              <div className="text-xs text-gray-600">Data Entity</div>
             </div>
           </div>
-        )}
-
-        {/* Empty State Message */}
-        {nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center text-gray-500">
-              <p className="text-lg font-medium mb-2">Start Building Your Workflow</p>
-              <p className="text-sm">Drag a component from the sidebar to create your first node</p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Right Sidebar - Node Editor */}
       {selectedNode && (
-        <div className="w-80 bg-gray-900 text-white flex flex-col">
+        <div className="w-80 bg-gray-800 text-white flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button className="text-gray-400 hover:text-white">
-                <ChevronUp size={16} />
-              </button>
+          <div className="p-4 border-b border-gray-600 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <KeyboardArrowUp className="w-5 h-5" />
               <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center">
-                <div className="flex gap-1">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                </div>
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+                <div className="w-2 h-2 bg-white rounded-full ml-1"></div>
+                <div className="w-2 h-2 bg-white rounded-full ml-1"></div>
               </div>
             </div>
             <button 
               onClick={deleteSelectedNode}
-              className="text-gray-400 hover:text-red-400"
+              className="text-gray-400 hover:text-white"
             >
-              <Trash2 size={16} />
+              <Delete className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Editor Content */}
-          <div className="p-4 flex-1 overflow-y-auto">
+          {/* Content */}
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
             {selectedNode.type === 'status' ? (
-              // State Editor
-              <div className="space-y-4">
+              // State Node Editor
+              <>
                 <div>
-                  <Label htmlFor="state-name" className="text-sm font-medium text-white">
-                    State
-                  </Label>
+                  <Label className="text-sm font-bold text-white mb-2 block">State</Label>
                   <Input
-                    id="state-name"
                     value={editingState.name}
                     onChange={(e) => setEditingState(prev => ({ ...prev, name: e.target.value }))}
-                    className="mt-2 bg-gray-800 border-gray-600 text-white"
-                    placeholder="Enter state name"
+                    className="bg-gray-700 border-gray-600 text-white"
                   />
                 </div>
-              </div>
+              </>
             ) : (
-              // Business Event Editor
-              <div className="space-y-6">
-                {/* Business Event Name */}
+              // Event Node Editor
+              <>
                 <div>
-                  <Label htmlFor="business-event-name" className="text-sm font-medium text-white">
-                    Business Event Name
-                  </Label>
-                  <Input
-                    id="business-event-name"
-                    value={editingState.businessEventName || ''}
-                    onChange={(e) => setEditingState(prev => ({ ...prev, businessEventName: e.target.value }))}
-                    className="mt-2 bg-gray-800 border-gray-600 text-white"
-                    placeholder="Enrich"
-                  />
-                </div>
-
-                {/* Focal Entity */}
-                <div>
-                  <Label htmlFor="focal-entity" className="text-sm font-medium text-white">
-                    Focal Entity
-                  </Label>
-                  <div className="relative">
-                    <select
-                      id="focal-entity"
-                      value={editingState.focalEntity || ''}
-                      onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
-                      className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
-                    >
-                      {focalEntityOptions.map(option => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <Label htmlFor="description" className="text-sm font-medium text-white">
-                    Description
-                  </Label>
-                  <div className="relative mt-2">
-                    <Textarea
-                      id="description"
-                      value={editingState.description || ''}
-                      onChange={(e) => setEditingState(prev => ({ ...prev, description: e.target.value }))}
-                      className="bg-gray-800 border-gray-600 text-white pr-12"
-                      rows={3}
-                      maxLength={240}
-                      placeholder="PMF enriches hypo loan positions."
-                    />
-                    <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                      {(editingState.description || '').length}/240
-                    </div>
-                  </div>
-                </div>
-
-                {/* Created Entities */}
-                <div>
-                  <Label className="text-sm font-medium text-white">
-                    Created Entities
-                  </Label>
-                  <div className="mt-2 space-y-2">
-                    <div className="relative">
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            addCreatedEntity(e.target.value);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
-                      >
-                        <option value="">Select created entities</option>
-                        {createdEntityOptions.filter(opt => !editingState.createdEntities?.includes(opt)).map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                    <button className="text-xs text-cyan-400 hover:text-cyan-300">
-                      Advanced Select
-                    </button>
-                    <div className="flex flex-wrap gap-2">
-                      {editingState.createdEntities?.map(entity => (
-                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-700 text-xs rounded">
-                          {entity}
-                          <button 
-                            onClick={() => removeCreatedEntity(entity)}
-                            className="hover:text-red-300"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Modified Entities */}
-                <div>
-                  <Label className="text-sm font-medium text-white">
-                    Modified Entities
-                  </Label>
-                  <div className="mt-2 space-y-2">
-                    <div className="relative">
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            addModifiedEntity(e.target.value);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
-                      >
-                        <option value="">Select modified entities</option>
-                        {modifiedEntityOptions.filter(opt => !editingState.modifiedEntities?.includes(opt)).map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                    <button className="text-xs text-cyan-400 hover:text-cyan-300">
-                      Advanced Select
-                    </button>
-                    <div className="flex flex-wrap gap-2">
-                      {editingState.modifiedEntities?.map(entity => (
-                        <span key={entity} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-700 text-xs rounded">
-                          {entity}
-                          <button 
-                            onClick={() => removeModifiedEntity(entity)}
-                            className="hover:text-red-300"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Business Events & Subworkflows */}
-                <div>
-                  <Label className="text-sm font-medium text-white">
+                  <Label className="text-sm font-bold text-white mb-2 block">
                     Business Event(s) and/or Subworkflow(s)
                   </Label>
-                  <div className="mt-2 space-y-2">
-                    <div className="relative">
-                      <select className="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8">
-                        <option value="">Select business event(s) and/or subworkflow(s)</option>
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600 text-xs rounded">
-                        Enrich
-                        <button className="hover:text-cyan-200">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                      {editingState.businessEvents?.map(event => (
-                        <span key={event} className="inline-flex items-center gap-1 px-2 py-1 bg-cyan-600 text-xs rounded">
-                          {event}
-                          <button 
-                            onClick={() => removeBusinessEvent(event)}
-                            className="hover:text-cyan-200"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                    <option>Select business event(s) and/or subworkflow(s)</option>
+                    {businessEventOptions.map(event => (
+                      <option key={event} value={event}>{event}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Condition */}
                 <div>
-                  <Label htmlFor="condition" className="text-sm font-medium text-white">
-                    Condition
-                  </Label>
+                  <Label className="text-sm font-bold text-white mb-2 block">Business Event Name</Label>
+                  <Input
+                    value={editingState.businessEventName}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, businessEventName: e.target.value }))}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-bold text-white mb-2 block">Focal Entity</Label>
+                  <select 
+                    value={editingState.focalEntity}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  >
+                    {focalEntityOptions.map(entity => (
+                      <option key={entity} value={entity}>{entity}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-bold text-white mb-2 block">Description</Label>
                   <div className="relative">
-                    <select
-                      id="condition"
-                      value={editingState.condition || 'None'}
-                      onChange={(e) => setEditingState(prev => ({ ...prev, condition: e.target.value }))}
-                      className="mt-2 w-full p-2 bg-gray-800 border border-gray-600 rounded text-white appearance-none pr-8"
-                    >
-                      <option value="None">None</option>
-                      <option value="If">If</option>
-                      <option value="While">While</option>
-                      <option value="When">When</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <Textarea
+                      value={editingState.description}
+                      onChange={(e) => setEditingState(prev => ({ ...prev, description: e.target.value }))}
+                      className="bg-gray-700 border-gray-600 text-white pr-12"
+                      rows={3}
+                      maxLength={240}
+                    />
+                    <div className="absolute bottom-2 right-2 text-xs text-gray-400">
+                      {editingState.description?.length || 0}/240
+                    </div>
                   </div>
                 </div>
 
-                {/* Trigger */}
                 <div>
-                  <Label className="text-sm font-medium text-white mb-3 block">
-                    Trigger
-                  </Label>
-                  <div className="space-y-2">
+                  <Label className="text-sm font-bold text-white mb-2 block">Created Entities</Label>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white mb-2">
+                    <option>Select created entities</option>
+                    {createdEntityOptions.map(entity => (
+                      <option key={entity} value={entity}>{entity}</option>
+                    ))}
+                  </select>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {editingState.createdEntities?.map((entity, index) => (
+                      <span key={index} className="bg-gray-600 px-2 py-1 rounded text-xs flex items-center gap-1">
+                        {entity}
+                        <Close className="w-3 h-3 cursor-pointer" />
+                      </span>
+                    ))}
+                  </div>
+                  <button className="text-teal-400 text-sm hover:text-teal-300">Advanced Select</button>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-bold text-white mb-2 block">Modified Entities</Label>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white mb-2">
+                    <option>Select modified entities</option>
+                    {modifiedEntityOptions.map(entity => (
+                      <option key={entity} value={entity}>{entity}</option>
+                    ))}
+                  </select>
+                  <button className="text-teal-400 text-sm hover:text-teal-300">Advanced Select</button>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-bold text-white mb-2 block">Condition</Label>
+                  <select 
+                    value={editingState.condition}
+                    onChange={(e) => setEditingState(prev => ({ ...prev, condition: e.target.value }))}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  >
+                    {conditionOptions.map(condition => (
+                      <option key={condition} value={condition}>{condition}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-bold text-white mb-2 block">Trigger</Label>
+                  <div className="flex gap-4">
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={editingState.triggerAutomatic || false}
+                        checked={editingState.triggerAutomatic}
                         onChange={(e) => setEditingState(prev => ({ ...prev, triggerAutomatic: e.target.checked }))}
                         className="rounded"
                       />
@@ -802,7 +644,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={editingState.triggerExternal || false}
+                        checked={editingState.triggerExternal}
                         onChange={(e) => setEditingState(prev => ({ ...prev, triggerExternal: e.target.checked }))}
                         className="rounded"
                       />
@@ -810,25 +652,36 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
                     </label>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Footer Buttons */}
-          <div className="p-4 border-t border-gray-700 flex justify-between">
-            <Button 
-              variant="outline" 
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-300 border-gray-600 hover:bg-gray-800"
-            >
-              Previous
-            </Button>
-            <Button 
-              onClick={saveNodeEdit}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {selectedNode.type === 'status' ? 'Done' : 'Next'}
-            </Button>
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-600 flex gap-2">
+            {selectedNode.type === 'status' ? (
+              <Button 
+                onClick={saveNodeEdit}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                Save State
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedNode(null)}
+                  className="flex-1 border-gray-600 text-white bg-gray-700 hover:bg-gray-600"
+                >
+                  Previous
+                </Button>
+                <Button 
+                  onClick={saveNodeEdit}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  Next
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}
