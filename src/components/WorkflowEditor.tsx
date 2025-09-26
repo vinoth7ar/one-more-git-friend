@@ -48,6 +48,7 @@ interface NodeEditingState {
   name: string;
   businessEventName?: string;
   focalEntity?: string;
+  showSecondPage?: boolean;
   description?: string;
   createdEntities?: string[];
   modifiedEntities?: string[];
@@ -126,7 +127,8 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     businessEvents: [],
     condition: 'None',
     triggerAutomatic: true,
-    triggerExternal: false
+    triggerExternal: false,
+    showSecondPage: false
   });
   
   // React Flow state
@@ -201,7 +203,8 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
         businessEvents: [nodeData.label || ''],
         condition: 'None',
         triggerAutomatic: true,
-        triggerExternal: false
+        triggerExternal: false,
+        showSecondPage: false
       });
     }
   }, []);
@@ -248,6 +251,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
     if (type === 'status') {
       setEditingState({
         name: 'New State',
+        showSecondPage: false
       });
     } else {
       setEditingState({
@@ -301,6 +305,65 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
       setSelectedNode(null);
     }
   };
+
+  // Add alternate node functionality
+  const addAlternateNode = useCallback((sourceNodeId: string) => {
+    const sourceNode = nodes.find(n => n.id === sourceNodeId);
+    if (!sourceNode) return;
+    
+    // Position alternate node below the source node
+    const alternatePosition = {
+      x: sourceNode.position.x,
+      y: sourceNode.position.y + 150
+    };
+    
+    // Determine alternate type (opposite of source)
+    const alternateType = sourceNode.type === 'status' ? 'event' : 'status';
+    
+    const newNode: Node = {
+      id: `${alternateType}-${Date.now()}`,
+      type: alternateType,
+      position: alternatePosition,
+      data: { 
+        label: alternateType === 'status' ? 'New State' : 'New Event',
+        onAddAlternate: addAlternateNode
+      },
+    };
+    
+    setNodes((nds) => nds.concat(newNode));
+    
+    // Create connection from source to alternate
+    const newEdge = {
+      id: `${sourceNodeId}-${newNode.id}`,
+      source: sourceNodeId,
+      target: newNode.id,
+      type: 'animated',
+    };
+    setEdges((eds) => eds.concat(newEdge));
+    
+    // Auto-select the new node for editing
+    setSelectedNode(newNode);
+    if (alternateType === 'status') {
+      setEditingState({
+        name: 'New State',
+        showSecondPage: false
+      });
+    } else {
+      setEditingState({
+        name: 'New Event',
+        businessEventName: 'New Event',
+        focalEntity: focalEntityOptions[0],
+        description: '',
+        createdEntities: [],
+        modifiedEntities: [],
+        businessEvents: ['New Event'],
+        condition: 'None',
+        triggerAutomatic: true,
+        triggerExternal: false,
+        showSecondPage: false
+      });
+    }
+  }, [nodes, setNodes, setEdges, focalEntityOptions]);
 
   return (
     <div className="h-screen flex" style={{ backgroundColor: '#F5F5DC' }}>
@@ -414,7 +477,13 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
       <div className="flex-1 relative">
         <ReactFlowProvider>
           <ReactFlow
-            nodes={nodes}
+            nodes={nodes.map(node => ({
+              ...node,
+              data: {
+                ...node.data,
+                onAddAlternate: addAlternateNode
+              }
+            }))}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -498,7 +567,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
 
       {/* Right Sidebar - Node Editor */}
       {selectedNode && (
-        <div className="w-80 bg-gray-800 text-white flex flex-col">
+        <div className="w-96 bg-gray-800 text-white flex flex-col shadow-2xl">
           {/* Header */}
           <div className="p-4 border-b border-gray-600 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -518,28 +587,29 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+          <div className="flex-1 p-6 space-y-6 overflow-y-auto max-h-[60vh]">
             {selectedNode.type === 'status' ? (
               // State Node Editor
               <>
                 <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">State</Label>
+                  <Label className="text-sm font-medium text-white mb-3 block">State</Label>
                   <Input
                     value={editingState.name}
                     onChange={(e) => setEditingState(prev => ({ ...prev, name: e.target.value }))}
-                    className="bg-gray-700 border-gray-600 text-white"
+                    className="bg-gray-700 border-gray-600 text-white h-12"
+                    placeholder="Enter state name"
                   />
                 </div>
               </>
             ) : (
-              // Event Node Editor
+              // Event Node Editor - Matches Figma exactly
               <>
                 <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">
+                  <Label className="text-sm font-medium text-white mb-3 block">
                     Business Event(s) and/or Subworkflow(s)
                   </Label>
-                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
-                    <option>Select business event(s) and/or subworkflow(s)</option>
+                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-12">
+                    <option>Stage</option>
                     {businessEventOptions.map(event => (
                       <option key={event} value={event}>{event}</option>
                     ))}
@@ -547,80 +617,13 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Business Event Name</Label>
-                  <Input
-                    value={editingState.businessEventName}
-                    onChange={(e) => setEditingState(prev => ({ ...prev, businessEventName: e.target.value }))}
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Focal Entity</Label>
+                  <Label className="text-sm font-medium text-white mb-3 block">Condition</Label>
                   <select 
-                    value={editingState.focalEntity}
-                    onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                  >
-                    {focalEntityOptions.map(entity => (
-                      <option key={entity} value={entity}>{entity}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Description</Label>
-                  <div className="relative">
-                    <Textarea
-                      value={editingState.description}
-                      onChange={(e) => setEditingState(prev => ({ ...prev, description: e.target.value }))}
-                      className="bg-gray-700 border-gray-600 text-white pr-12"
-                      rows={3}
-                      maxLength={240}
-                    />
-                    <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                      {editingState.description?.length || 0}/240
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Created Entities</Label>
-                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white mb-2">
-                    <option>Select created entities</option>
-                    {createdEntityOptions.map(entity => (
-                      <option key={entity} value={entity}>{entity}</option>
-                    ))}
-                  </select>
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {editingState.createdEntities?.map((entity, index) => (
-                      <span key={index} className="bg-gray-600 px-2 py-1 rounded text-xs flex items-center gap-1">
-                        {entity}
-                        <Close className="w-3 h-3 cursor-pointer" />
-                      </span>
-                    ))}
-                  </div>
-                  <button className="text-teal-400 text-sm hover:text-teal-300">Advanced Select</button>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Modified Entities</Label>
-                  <select className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white mb-2">
-                    <option>Select modified entities</option>
-                    {modifiedEntityOptions.map(entity => (
-                      <option key={entity} value={entity}>{entity}</option>
-                    ))}
-                  </select>
-                  <button className="text-teal-400 text-sm hover:text-teal-300">Advanced Select</button>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Condition</Label>
-                  <select 
-                    value={editingState.condition}
+                    value={editingState.condition || 'None'}
                     onChange={(e) => setEditingState(prev => ({ ...prev, condition: e.target.value }))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-12"
                   >
+                    <option value="None">None</option>
                     {conditionOptions.map(condition => (
                       <option key={condition} value={condition}>{condition}</option>
                     ))}
@@ -628,56 +631,135 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-bold text-white mb-2 block">Trigger</Label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2">
+                  <Label className="text-sm font-medium text-white mb-3 block">Trigger</Label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={editingState.triggerAutomatic}
                         onChange={(e) => setEditingState(prev => ({ ...prev, triggerAutomatic: e.target.checked }))}
-                        className="rounded"
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600"
                       />
                       <span className="text-sm">Automatic</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={editingState.triggerExternal}
                         onChange={(e) => setEditingState(prev => ({ ...prev, triggerExternal: e.target.checked }))}
-                        className="rounded"
+                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600"
                       />
                       <span className="text-sm">External</span>
                     </label>
                   </div>
                 </div>
+
+                {/* Second page fields - shown when Next is clicked */}
+                {editingState.showSecondPage && (
+                  <>
+                    <div>
+                      <Label className="text-sm font-medium text-white mb-3 block">Business Event Name</Label>
+                      <Input
+                        value={editingState.businessEventName || ''}
+                        onChange={(e) => setEditingState(prev => ({ ...prev, businessEventName: e.target.value }))}
+                        className="bg-gray-700 border-gray-600 text-white h-12"
+                        placeholder="Enrich"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-white mb-3 block">Focal Entity</Label>
+                      <select 
+                        value={editingState.focalEntity || 'Loan Commitment'}
+                        onChange={(e) => setEditingState(prev => ({ ...prev, focalEntity: e.target.value }))}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-12"
+                      >
+                        <option value="Loan Commitment">Loan Commitment</option>
+                        {focalEntityOptions.map(entity => (
+                          <option key={entity} value={entity}>{entity}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-white mb-3 block">Description</Label>
+                      <div className="relative">
+                        <Textarea
+                          value={editingState.description || 'PMF enriches hypo loan positions.'}
+                          onChange={(e) => setEditingState(prev => ({ ...prev, description: e.target.value }))}
+                          className="bg-gray-700 border-gray-600 text-white pr-16 min-h-[120px]"
+                          rows={4}
+                          maxLength={240}
+                          placeholder="Enter description..."
+                        />
+                        <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                          {editingState.description?.length || 0}/240
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-white mb-3 block">Created Entities</Label>
+                      <select className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-12 mb-3">
+                        <option>Select created entities</option>
+                        {createdEntityOptions.map(entity => (
+                          <option key={entity} value={entity}>{entity}</option>
+                        ))}
+                      </select>
+                      <button className="text-cyan-400 text-sm hover:text-cyan-300 font-medium">Advanced Select</button>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-white mb-3 block">Modified Entities</Label>
+                      <select className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-white h-12 mb-3">
+                        <option>Select modified entities</option>
+                        {modifiedEntityOptions.map(entity => (
+                          <option key={entity} value={entity}>{entity}</option>
+                        ))}
+                      </select>
+                      <button className="text-cyan-400 text-sm hover:text-cyan-300 font-medium">Advanced Select</button>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-600 flex gap-2">
+          <div className="p-6 border-t border-gray-600 flex gap-3">
             {selectedNode.type === 'status' ? (
               <Button 
                 onClick={saveNodeEdit}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1 bg-cyan-600 hover:bg-cyan-700 h-12 font-medium"
               >
-                Save State
+                Done
               </Button>
             ) : (
               <>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSelectedNode(null)}
-                  className="flex-1 border-gray-600 text-white bg-gray-700 hover:bg-gray-600"
-                >
-                  Previous
-                </Button>
-                <Button 
-                  onClick={saveNodeEdit}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  Next
-                </Button>
+                {editingState.showSecondPage ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setEditingState(prev => ({ ...prev, showSecondPage: false }))}
+                      className="flex-1 border-gray-600 text-white bg-gray-700 hover:bg-gray-600 h-12 font-medium"
+                    >
+                      Previous
+                    </Button>
+                    <Button 
+                      onClick={saveNodeEdit}
+                      className="flex-1 bg-cyan-600 hover:bg-cyan-700 h-12 font-medium"
+                    >
+                      Done
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={() => setEditingState(prev => ({ ...prev, showSecondPage: true }))}
+                    className="flex-1 bg-cyan-600 hover:bg-cyan-700 h-12 font-medium"
+                  >
+                    Next
+                  </Button>
+                )}
               </>
             )}
           </div>

@@ -258,7 +258,10 @@ export const SingleViewWorkflowBuilder = ({ workflowId }: SingleViewWorkflowBuil
             minZoom={0.1}
             maxZoom={2}
             attributionPosition="top-right"
-            selectNodesOnDrag={false}
+            selectNodesOnDrag={true}
+            nodesConnectable={true}
+            nodesDraggable={true}
+            elementsSelectable={true}
           >
             {/* Background Pattern */}
             <Background
