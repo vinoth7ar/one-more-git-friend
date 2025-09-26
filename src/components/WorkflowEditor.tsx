@@ -19,9 +19,7 @@ import {
   Close,
   ExpandLess,
   ExpandMore,
-  AspectRatio,
-  KeyboardArrowUp,
-  KeyboardArrowDown
+  AspectRatio
 } from '@mui/icons-material';
 
 import { StatusNode } from '../nodes/StatusNode';
@@ -504,7 +502,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
           {/* Header */}
           <div className="p-4 border-b border-gray-600 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <KeyboardArrowUp className="w-5 h-5" />
+              <ExpandLess className="w-5 h-5" />
               <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center">
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 <div className="w-2 h-2 bg-white rounded-full ml-1"></div>
