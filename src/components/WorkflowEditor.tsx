@@ -366,7 +366,7 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
   }, [nodes, setNodes, setEdges, focalEntityOptions]);
 
   return (
-    <div className="h-screen flex" style={{ backgroundColor: '#F5F5DC' }}>
+    <div className="h-screen flex bg-[#F5F5DC]">
       {/* Left Sidebar */}
       <div className="w-80 bg-white border-r border-gray-300 flex flex-col">
         {/* Header */}
@@ -515,52 +515,27 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
               maxZoom: 1.5,
               minZoom: 0.1,
             }}
-            style={{ backgroundColor: '#F5F5DC' }}
+            className="bg-[#F5F5DC]"
           >
-            <Background variant={BackgroundVariant.Dots} color="#ddd" gap={20} size={1} />
-            <Controls position="bottom-left" />
-            
-            {/* Custom zoom and fit buttons */}
-            <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-10">
-              <button className="bg-white border border-gray-300 rounded p-2 shadow-sm hover:bg-gray-50">
-                +
-              </button>
-              <button className="bg-white border border-gray-300 rounded p-2 shadow-sm hover:bg-gray-50">
-                −
-              </button>
-              <button 
-                onClick={handleSmartLayout}
-                className="bg-white border border-gray-300 rounded p-2 shadow-sm hover:bg-gray-50"
-                disabled={nodes.length === 0}
-              >
-                <AspectRatio className="w-4 h-4" />
-              </button>
-            </div>
+            <Background variant={BackgroundVariant.Dots} color="#C0C0C0" gap={16} size={1} />
+            <Controls 
+              position="bottom-right"
+              showZoom={true}
+              showFitView={true}
+              showInteractive={false}
+              className="bg-white border border-gray-300 rounded shadow-sm"
+            />
           </ReactFlow>
         </ReactFlowProvider>
 
-        {/* Legend */}
-        <div className="absolute top-4 right-4 bg-teal-200 border border-teal-400 rounded-lg p-4 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-sm">Legend</h3>
-            <button className="text-gray-600 hover:text-gray-800">
-              <ExpandLess className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="bg-white rounded border border-gray-300 p-3">
-            <div className="text-xs font-bold mb-2">Application</div>
-            <div className="bg-gray-100 rounded border border-gray-300 p-2">
-              <div className="text-xs font-bold mb-1">Workflow</div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-4 h-4 bg-teal-200 rounded border border-gray-400 flex items-center justify-center">
-                  <div className="text-xs">BE</div>
-                </div>
-                <div className="w-4 h-4 bg-gray-200 rounded-full border border-gray-400 flex items-center justify-center">
-                  <div className="text-xs">st</div>
-                </div>
-              </div>
-              <div className="text-xs text-gray-600">Data Entity</div>
-            </div>
+        {/* Legend - Bottom right to match Figma */}
+        <div className="absolute bottom-4 right-4 bg-white border border-gray-400 rounded p-3 shadow-sm w-32 h-24">
+          <div className="text-xs text-gray-700 font-medium mb-2">Mini-map</div>
+          <div className="bg-gray-100 rounded border border-gray-300 h-16 relative">
+            {/* Mini representation of the workflow */}
+            <div className="absolute top-2 left-2 w-2 h-2 bg-green-400 rounded"></div>
+            <div className="absolute top-2 left-6 w-2 h-1 bg-gray-400 rounded"></div>
+            <div className="absolute top-2 left-10 w-2 h-2 bg-gray-300 rounded-full"></div>
           </div>
         </div>
       </div>
