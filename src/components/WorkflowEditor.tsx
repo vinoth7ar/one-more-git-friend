@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import {
   ReactFlow,
   addEdge,
@@ -12,6 +12,8 @@ import {
   Node,
   ReactFlowProvider,
   BackgroundVariant,
+  Handle,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { 
@@ -23,8 +25,7 @@ import {
   AspectRatio
 } from '@mui/icons-material';
 
-import { StatusNode } from '../nodes/StatusNode';
-import { EventNode } from '../nodes/EventNode';
+import { Add } from '@mui/icons-material';
 import { AnimatedEdge } from '../edges/AnimatedEdge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,9 +138,75 @@ export const WorkflowEditor = ({ workflowId }: WorkflowEditorProps) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Node types for React Flow
+  // Inline Status Node Component
+  const StatusNodeComponent = memo(({ data, selected, id }: any) => {
+    const handleAddAlternate = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (id) {
+        addAlternateNode(id);
+      }
+    };
+
+    return (
+      <div className="relative group">
+        <div className={`
+          w-20 h-20 rounded-full border-2 flex items-center justify-center text-center text-sm font-medium shadow-lg
+          ${selected ? 'border-blue-500 bg-blue-50 shadow-blue-200' : 'border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100'}
+          hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer
+        `}>
+          <Handle type="target" position={Position.Left} className="w-3 h-3 bg-gray-400 border-2 border-white" />
+          <span className="text-amber-800 font-semibold px-2">{data.label}</span>
+          <Handle type="source" position={Position.Right} className="w-3 h-3 bg-gray-400 border-2 border-white" />
+        </div>
+        
+        {/* Add Alternate Button */}
+        <button
+          onClick={handleAddAlternate}
+          className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-cyan-700 hover:scale-110 shadow-lg"
+          title="Add alternate node"
+        >
+          <Add className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  });
+
+  // Inline Event Node Component
+  const EventNodeComponent = memo(({ data, selected, id }: any) => {
+    const handleAddAlternate = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (id) {
+        addAlternateNode(id);
+      }
+    };
+
+    return (
+      <div className="relative group">
+        <div className={`
+          w-24 h-16 border-2 flex items-center justify-center text-center text-sm font-medium shadow-lg rounded-lg
+          ${selected ? 'border-blue-500 bg-blue-50 shadow-blue-200' : 'border-slate-400 bg-gradient-to-br from-slate-50 to-slate-100'}
+          hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer
+        `}>
+          <Handle type="target" position={Position.Left} className="w-3 h-3 bg-gray-400 border-2 border-white" />
+          <span className="text-slate-700 font-semibold px-2">{data.label}</span>
+          <Handle type="source" position={Position.Right} className="w-3 h-3 bg-gray-400 border-2 border-white" />
+        </div>
+        
+        {/* Add Alternate Button */}
+        <button
+          onClick={handleAddAlternate}
+          className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-cyan-700 hover:scale-110 shadow-lg"
+          title="Add alternate node"
+        >
+          <Add className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  });
+
   const nodeTypes = useMemo(() => ({
-    status: StatusNode,
-    event: EventNode,
+    status: StatusNodeComponent,
+    event: EventNodeComponent,
   }), []);
 
   // Edge types for React Flow  

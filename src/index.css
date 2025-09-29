@@ -141,3 +141,24 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Workflow Editor Custom Styles */
+.workflow-canvas {
+  background: linear-gradient(135deg, #FEF7E0 0%, #FDF2E9 50%, #FCE7D4 100%);
+}
+
+.workflow-canvas .react-flow__node {
+  @apply transition-all duration-300;
+}
+
+.workflow-canvas .react-flow__edge {
+  @apply transition-all duration-300;
+}
+
+.workflow-canvas .react-flow__controls {
+  @apply bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl;
+}
+
+.workflow-canvas .react-flow__minimap {
+  @apply bg-white/90 backdrop-blur-sm border-amber-200 shadow-xl;
+}
